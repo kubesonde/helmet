@@ -1,0 +1,64 @@
+ComponentSelector:
+  helmet.io/chart: wordpress
+Egress:
+  Allow:
+    Components:
+    - dns
+    - kube_api_server
+    Resources: null
+  Deny:
+    Components:
+    - private_subnets
+    Resources: null
+Ingress:
+  Allow:
+    Components: null
+    Resources:
+    - Ports:
+      - port: 80
+        protocol: TCP
+      - port: 8080
+        protocol: TCP
+      - port: 443
+        protocol: TCP
+      - port: 8443
+        protocol: TCP
+      Selector: null
+  Deny:
+    Components: null
+    Resources: null
+Interactions:
+- From:
+    helmet.io/chart: wordpress
+  To:
+    helmet.io/chart: wordpress_mariadb
+Name: wordpress-policy
+
+---
+ComponentSelector:
+  helmet.io/chart: wordpress_mariadb
+Egress:
+  Allow:
+    Components:
+    - dns
+    - kube_api_server
+    Resources: null
+  Deny:
+    Components:
+    - private_subnets
+    Resources: null
+Ingress:
+  Allow:
+    Components: null
+    Resources:
+    - Ports:
+      - port: 3306
+        protocol: TCP
+      Selector: null
+  Deny:
+    Components: null
+    Resources: null
+Interactions: []
+Name: wordpress--mariadb-policy
+
+---

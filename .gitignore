@@ -1,0 +1,28 @@
+output_dir/**
+.env
+./yaml/
+cover.out
+coverage.html
+result.json
+out/
+test/kubesound-output/
+test/test-deployment
+postrender/output_dir
+*/log.log
+*.DS_Store
+log.log
+build/**
+
+# Postrenderer
+postrender/postrender
+postrender/log.log
+
+# Integration tests
+integration/log.log
+integration/output_dir/**
+integration/integration_tests/**
+*/.synctex*
+postrender/config.yml
+
+**/config.yaml
+dist/**
