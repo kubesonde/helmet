@@ -54,11 +54,12 @@ func SecureWholeChart(settings *cli.EnvSettings, chartName string, releaseName s
 	config_available := os.Getenv("CONFIG_FILE")
 	if len(config_available) == 0 {
 		runWithDefaultConfig(hw, output_dir)
+		fmt.Printf("Chart %s processed successfully using default configuration.\n Output folder: yaml", chartName)
 	} else {
 		runWithCustomConfig(hw, apiClient, config_available, output_dir)
+		fmt.Printf("Chart %s processed successfully using %s configuration.\n Output folder: yaml", chartName, config_available)
 	}
-	fmt.Println("Done processing chart")
-	fmt.Printf("Chart %s processed successfully.\n Config available %s, %d\n", chartName, config_available, len(config_available))
+
 }
 
 func runWithCustomConfig(hw types.Helmet, apiClient kubernetes.Interface, config_available string, output_dir string) {
