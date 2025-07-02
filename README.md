@@ -15,6 +15,7 @@ Helm-ET can be used in two different flavours:
   1. As a standalone binary
   2. As a helm [postrender hook](https://helm.sh/docs/topics/advanced/#post-rendering). 
 
+Helm-ET takes as an input an application defined in a Helm Chart and outputs the rendered yaml files. The output contains newly created network policies and the resources defined in the chart with additional labels.
 
 ## Building from source
 
