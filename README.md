@@ -13,7 +13,7 @@ This repository contains the source code for `Helm-ET` (Helm Edge Trimmer), a to
 ## How to run 
 Helm-ET can be used in two different flavours: 
   1. As a standalone binary
-  2. As an helm [postrender hook](https://helm.sh/docs/topics/advanced/#post-rendering). 
+  2. As a helm [postrender hook](https://helm.sh/docs/topics/advanced/#post-rendering). 
 
 
 ## Building from source
