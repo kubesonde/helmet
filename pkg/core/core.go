@@ -27,7 +27,6 @@ import (
 	"github.com/samber/lo"
 	logf "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-	"helm.sh/helm/v3/pkg/cli"
 	"helmet.io/pkg/errors"
 	"helmet.io/pkg/helm"
 	"helmet.io/pkg/outbound"
@@ -38,7 +37,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func init() {
@@ -225,27 +223,6 @@ func prepareNetworkPolicy(_k8sapiIP string, _kubernetesPort int32) func(policyNa
 
 		return network_policy
 	}
-}
-
-/*
-This function wraps chart with its dependencies.
-*/
-func SecureWholeChart(settings *cli.EnvSettings, chartName string, releaseName string, output_dir string, dependencyLabelKey string, forceLoad bool) helm.HelmManifestList {
-	clusterConfig := config.GetConfigOrDie()
-	apiClient := lo.Must1(kubernetes.NewForConfig(clusterConfig))
-	stats := ChartStats{}
-	manifestList, err := helm.GetManifestList(settings, chartName, releaseName, forceLoad, output_dir)
-	if err != nil {
-		stats.Error = errors.StringToError(err.Error())
-
-		return nil
-	}
-	hw := types.Helmet{
-		Manifests:   manifestList,
-		HelmetLabel: dependencyLabelKey,
-	}
-	value, _, _, _ := SecureWholeChartFromList(hw, apiClient, output_dir)
-	return value
 }
 
 func GetKubernetesIPAndPort(client kubernetes.Interface) (string, int32) {
