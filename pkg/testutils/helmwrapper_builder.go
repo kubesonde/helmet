@@ -14,6 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package testutils
 
 import (
@@ -40,6 +55,7 @@ func NewChart(name string) *Chart {
 	c.Name = name
 	return c
 }
+
 func (c *Chart) AddService(service v1.Service, name string) {
 	svc_bytes := lo.Must1(yaml.Marshal(service))
 	var manifest helm.HelmManifest
@@ -74,12 +90,10 @@ func (c *Chart) init() {
 
 func (c *Chart) AddDependency(dep Chart) {
 	c.deps = append(c.deps, dep)
-
 }
 
 func (c *Chart) IsEmpty() bool {
 	return len(lo.Keys(c.manifests)) == 0
-
 }
 
 func ToNetworkPolicy(policy string) netv1.NetworkPolicy {
@@ -90,7 +104,6 @@ func ToNetworkPolicy(policy string) netv1.NetworkPolicy {
 		return netv1.NetworkPolicy{}
 	}
 	return netpol
-
 }
 
 func ToPod(pod string) v1.Pod {
@@ -101,8 +114,8 @@ func ToPod(pod string) v1.Pod {
 		return thePod
 	}
 	return thePod
-
 }
+
 func ToSvc(svc string) v1.Service {
 	var theService v1.Service
 	err := yaml.Unmarshal([]byte(svc), &theService)
@@ -111,7 +124,6 @@ func ToSvc(svc string) v1.Service {
 		return theService
 	}
 	return theService
-
 }
 
 func GetKubeSystemRule() netv1.NetworkPolicyEgressRule {
@@ -120,32 +132,33 @@ func GetKubeSystemRule() netv1.NetworkPolicyEgressRule {
 	port := intstr.FromInt(53)
 
 	return netv1.NetworkPolicyEgressRule{
-
 		To: []netv1.NetworkPolicyPeer{
 			{
 				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"kubernetes.io/metadata.name": "kube-system"}},
 			},
 		},
 		Ports: []netv1.NetworkPolicyPort{
-			{Port: &port,
-				Protocol: &pudp},
-			{Port: &port,
-				Protocol: &ptcp},
+			{
+				Port:     &port,
+				Protocol: &pudp,
+			},
+			{
+				Port:     &port,
+				Protocol: &ptcp,
+			},
 		},
 	}
-
 }
 
 func GetInternetRule() netv1.NetworkPolicyEgressRule {
-
 	return netv1.NetworkPolicyEgressRule{
-
-		To: []netv1.NetworkPolicyPeer{{
-			IPBlock: &netv1.IPBlock{
-				CIDR:   "0.0.0.0/0",
-				Except: []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
-			}},
+		To: []netv1.NetworkPolicyPeer{
+			{
+				IPBlock: &netv1.IPBlock{
+					CIDR:   "0.0.0.0/0",
+					Except: []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
+				},
+			},
 		},
 	}
-
 }

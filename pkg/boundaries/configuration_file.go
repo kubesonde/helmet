@@ -1,3 +1,18 @@
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package boundaries
 
 import (
@@ -68,7 +83,7 @@ func MapNetpolToCustomFormat(netpol netv1.NetworkPolicy, log *logrus.Entry) *Hel
 			if len(ingressRule.Ports) == 0 {
 				continue
 			}
-			var selector = map[string]string{}
+			selector := map[string]string{}
 			if ingressRule.From[0].PodSelector != nil {
 				selector = ingressRule.From[0].PodSelector.MatchLabels
 			}
@@ -82,9 +97,7 @@ func MapNetpolToCustomFormat(netpol netv1.NetworkPolicy, log *logrus.Entry) *Hel
 						config.Ingress.Allow.Resources = append(config.Ingress.Allow.Resources, Resource{Selector: source.PodSelector.MatchLabels, Ports: ingressRule.Ports})
 					}
 				} else {
-
 					config.Ingress.Allow.Resources = append(config.Ingress.Allow.Resources, Resource{Ports: ingressRule.Ports, Selector: source.PodSelector.MatchLabels})
-
 				}
 			}
 		}
@@ -99,7 +112,7 @@ func MapNetpolToCustomFormat(netpol netv1.NetworkPolicy, log *logrus.Entry) *Hel
 			if len(egressRule.Ports) == 0 {
 				continue
 			}
-			var selector = map[string]string{}
+			selector := map[string]string{}
 			if egressRule.To[0].PodSelector != nil {
 				selector = egressRule.To[0].PodSelector.MatchLabels
 			}
@@ -120,7 +133,7 @@ func MapNetpolToCustomFormat(netpol netv1.NetworkPolicy, log *logrus.Entry) *Hel
 }
 
 func CustomFormatToNetpol(config HelmETConfig, client kubernetes.Interface) netv1.NetworkPolicy {
-	var kubernetesIP, kubernetesPort = core.GetKubernetesIPAndPort(client)
+	kubernetesIP, kubernetesPort := core.GetKubernetesIPAndPort(client)
 
 	pudp := corev1.ProtocolUDP
 	ptcp := corev1.ProtocolTCP
@@ -149,50 +162,50 @@ func CustomFormatToNetpol(config HelmETConfig, client kubernetes.Interface) netv
 		if inboundAllowcomponent == "chart_pods" {
 			policy.Spec.Ingress = append(policy.Spec.Ingress, netv1.NetworkPolicyIngressRule{
 				From: []netv1.NetworkPolicyPeer{
-					netv1.NetworkPolicyPeer{
+					{
 						PodSelector: &v1.LabelSelector{MatchLabels: config.ComponentSelector},
 					},
 				},
 			})
-
 		}
 	}
 	for _, inboundAllowResource := range config.Ingress.Allow.Resources {
 		policy.Spec.Ingress = append(policy.Spec.Ingress, netv1.NetworkPolicyIngressRule{
 			Ports: inboundAllowResource.Ports,
 			From: []netv1.NetworkPolicyPeer{
-				netv1.NetworkPolicyPeer{PodSelector: &v1.LabelSelector{
+				{PodSelector: &v1.LabelSelector{
 					MatchLabels: inboundAllowResource.Selector,
 				}},
 			},
 		})
-
 	}
 
 	for _, outboundAllowcomponent := range config.Egress.Allow.Components {
 		if outboundAllowcomponent == "chart_pods" {
 			policy.Spec.Egress = append(policy.Spec.Egress, netv1.NetworkPolicyEgressRule{
 				To: []netv1.NetworkPolicyPeer{
-					netv1.NetworkPolicyPeer{
+					{
 						PodSelector: &v1.LabelSelector{MatchLabels: config.ComponentSelector},
 					},
 				},
 			})
-
 		}
 		if outboundAllowcomponent == "dns" {
 			policy.Spec.Egress = append(policy.Spec.Egress, netv1.NetworkPolicyEgressRule{
-
 				To: []netv1.NetworkPolicyPeer{
 					{
 						NamespaceSelector: &v1.LabelSelector{MatchLabels: map[string]string{"kubernetes.io/metadata.name": "kube-system"}},
 					},
 				},
 				Ports: []netv1.NetworkPolicyPort{
-					{Port: &port,
-						Protocol: &pudp},
-					{Port: &port,
-						Protocol: &ptcp},
+					{
+						Port:     &port,
+						Protocol: &pudp,
+					},
+					{
+						Port:     &port,
+						Protocol: &ptcp,
+					},
 				},
 			})
 		}
@@ -201,7 +214,8 @@ func CustomFormatToNetpol(config HelmETConfig, client kubernetes.Interface) netv
 				To: []netv1.NetworkPolicyPeer{{
 					IPBlock: &netv1.IPBlock{
 						CIDR: fmt.Sprintf("%s/32", kubernetesIP),
-					}}},
+					},
+				}},
 				Ports: []netv1.NetworkPolicyPort{{Port: &kport}},
 			})
 		}
@@ -210,7 +224,7 @@ func CustomFormatToNetpol(config HelmETConfig, client kubernetes.Interface) netv
 		if outboundDenycomponent == "private_subnets" {
 			policy.Spec.Egress = append(policy.Spec.Egress, netv1.NetworkPolicyEgressRule{
 				To: []netv1.NetworkPolicyPeer{
-					netv1.NetworkPolicyPeer{
+					{
 						IPBlock: &netv1.IPBlock{
 							CIDR:   "0.0.0.0/0",
 							Except: []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
@@ -219,7 +233,6 @@ func CustomFormatToNetpol(config HelmETConfig, client kubernetes.Interface) netv
 				},
 			})
 		}
-
 	}
 
 	return policy
@@ -267,7 +280,6 @@ func NetworkPoliciesToTemplate(netpols []netv1.NetworkPolicy, depTree map[string
 		}
 
 		configs = append(configs, config)
-
 	}
 	return configs
 }
@@ -293,7 +305,7 @@ func generatePolicySkeleton(policyName string, name string) netv1.NetworkPolicy 
 }
 
 func TemplatesToNetpol(configs []HelmETConfig, client kubernetes.Interface, ancestors map[string][]string) []netv1.NetworkPolicy {
-	var kubernetesIP, kubernetesPort = core.GetKubernetesIPAndPort(client)
+	kubernetesIP, kubernetesPort := core.GetKubernetesIPAndPort(client)
 
 	pudp := corev1.ProtocolUDP
 	ptcp := corev1.ProtocolTCP
@@ -308,24 +320,24 @@ func TemplatesToNetpol(configs []HelmETConfig, client kubernetes.Interface, ance
 		policy := generatePolicySkeleton(config.Name, curr_dep)
 		if config.Ingress.Allow.Resources != nil {
 			ingresses[curr_dep] = config.Ingress.Allow.Resources[0].Ports
-
 		}
 		for _, inboundAllowcomponent := range config.Ingress.Allow.Components {
 			if inboundAllowcomponent == "chart_pods" {
 				policy.Spec.Ingress = append(policy.Spec.Ingress, netv1.NetworkPolicyIngressRule{
-					From: []netv1.NetworkPolicyPeer{{
-						PodSelector: &v1.LabelSelector{MatchLabels: config.ComponentSelector},
-					},
+					From: []netv1.NetworkPolicyPeer{
+						{
+							PodSelector: &v1.LabelSelector{MatchLabels: config.ComponentSelector},
+						},
 					},
 				})
-
 			}
 		}
 
 		policy.Spec.Ingress = append(policy.Spec.Ingress, netv1.NetworkPolicyIngressRule{
-			From: []netv1.NetworkPolicyPeer{{PodSelector: &v1.LabelSelector{
-				MatchLabels: config.ComponentSelector,
-			}},
+			From: []netv1.NetworkPolicyPeer{
+				{PodSelector: &v1.LabelSelector{
+					MatchLabels: config.ComponentSelector,
+				}},
 			},
 		})
 
@@ -333,7 +345,7 @@ func TemplatesToNetpol(configs []HelmETConfig, client kubernetes.Interface, ance
 			if outboundDenycomponent == "private_subnets" {
 				policy.Spec.Egress = append(policy.Spec.Egress, netv1.NetworkPolicyEgressRule{
 					To: []netv1.NetworkPolicyPeer{
-						netv1.NetworkPolicyPeer{
+						{
 							IPBlock: &netv1.IPBlock{
 								CIDR:   "0.0.0.0/0",
 								Except: []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
@@ -342,7 +354,6 @@ func TemplatesToNetpol(configs []HelmETConfig, client kubernetes.Interface, ance
 					},
 				})
 			}
-
 		}
 
 		if !ok {
@@ -350,30 +361,31 @@ func TemplatesToNetpol(configs []HelmETConfig, client kubernetes.Interface, ance
 				policy.Spec.Ingress = append(policy.Spec.Ingress, netv1.NetworkPolicyIngressRule{
 					Ports: inboundAllowResource.Ports,
 					From: []netv1.NetworkPolicyPeer{
-						netv1.NetworkPolicyPeer{PodSelector: &v1.LabelSelector{
+						{PodSelector: &v1.LabelSelector{
 							MatchLabels: inboundAllowResource.Selector,
 						}},
 					},
 				})
-
 			}
 		}
 
 		for _, outboundAllowcomponent := range config.Egress.Allow.Components {
-
 			if outboundAllowcomponent == "dns" {
 				policy.Spec.Egress = append(policy.Spec.Egress, netv1.NetworkPolicyEgressRule{
-
 					To: []netv1.NetworkPolicyPeer{
 						{
 							NamespaceSelector: &v1.LabelSelector{MatchLabels: map[string]string{"kubernetes.io/metadata.name": "kube-system"}},
 						},
 					},
 					Ports: []netv1.NetworkPolicyPort{
-						{Port: &port,
-							Protocol: &pudp},
-						{Port: &port,
-							Protocol: &ptcp},
+						{
+							Port:     &port,
+							Protocol: &pudp,
+						},
+						{
+							Port:     &port,
+							Protocol: &ptcp,
+						},
 					},
 				})
 			}
@@ -382,7 +394,8 @@ func TemplatesToNetpol(configs []HelmETConfig, client kubernetes.Interface, ance
 					To: []netv1.NetworkPolicyPeer{{
 						IPBlock: &netv1.IPBlock{
 							CIDR: fmt.Sprintf("%s/32", kubernetesIP),
-						}}},
+						},
+					}},
 					Ports: []netv1.NetworkPolicyPort{{Port: &kport}},
 				})
 			}
@@ -410,19 +423,18 @@ func TemplatesToNetpol(configs []HelmETConfig, client kubernetes.Interface, ance
 				destination := policies[to_chart]
 				destination.Spec.Ingress = append(destination.Spec.Ingress, netv1.NetworkPolicyIngressRule{
 					Ports: ingresses[to_chart],
-					From:  []netv1.NetworkPolicyPeer{netv1.NetworkPolicyPeer{PodSelector: &v1.LabelSelector{MatchLabels: from}}},
+					From:  []netv1.NetworkPolicyPeer{{PodSelector: &v1.LabelSelector{MatchLabels: from}}},
 				})
 				policies[to_chart] = destination
 
 				source := policies[from_chart]
 				source.Spec.Egress = append(source.Spec.Egress, netv1.NetworkPolicyEgressRule{
 					Ports: ingresses[to_chart],
-					To:    []netv1.NetworkPolicyPeer{netv1.NetworkPolicyPeer{PodSelector: &v1.LabelSelector{MatchLabels: to}}},
+					To:    []netv1.NetworkPolicyPeer{{PodSelector: &v1.LabelSelector{MatchLabels: to}}},
 				})
 				policies[from_chart] = source
 			}
 		}
-
 	}
 	return lo.Values(policies)
 }
@@ -432,14 +444,12 @@ func WriteHelmETConfigsToYAML(configs []HelmETConfig, filePath string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filePath, data, 0644)
+	return os.WriteFile(filePath, data, 0o600)
 }
 
 func ReadHelmETConfigsFromYAML(filePath string) ([]HelmETConfig, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
+	data := lo.Must1(os.ReadFile(filePath)) // #nosec G304 FIXME: handle path
+
 	var configs []HelmETConfig
 	if err := yaml.Unmarshal(data, &configs); err != nil {
 		return nil, err

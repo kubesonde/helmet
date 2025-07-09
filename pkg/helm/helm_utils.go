@@ -14,9 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package helm
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -24,9 +41,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-
-	"crypto/sha1"
-	"encoding/base64"
 
 	"github.com/samber/lo"
 	logf "github.com/sirupsen/logrus"
@@ -53,8 +67,10 @@ var (
 	})
 )
 
-type HelmManifest map[string]interface{}
-type HelmManifestList map[string]HelmManifest
+type (
+	HelmManifest     map[string]interface{}
+	HelmManifestList map[string]HelmManifest
+)
 
 func getActionConfig(namespace string) (*action.Configuration, error) {
 	actionConfig := new(action.Configuration)
@@ -75,10 +91,9 @@ func getActionConfig(namespace string) (*action.Configuration, error) {
 }
 
 /*
-This function return a string containing all the generated k8s manifests
+This function return a string containing all the generated k8s manifests.
 */
 func getManifest(namespace string, chart string, releaseName string, settings *cli.EnvSettings) (string, error) {
-
 	actionConfig := lo.Must1(getActionConfig(namespace))
 	client := action.NewInstall(actionConfig)
 	client.ReleaseName = releaseName
@@ -127,7 +142,6 @@ func getManifest(namespace string, chart string, releaseName string, settings *c
 }
 
 func splitRenderedResources(manifest string) []string {
-
 	if strings.HasPrefix(manifest, "--") {
 		manifest = "\n" + manifest
 	}
@@ -154,7 +168,6 @@ func splitRenderedResources(manifest string) []string {
 		}
 
 		if len(lines) < 4 {
-
 			return false
 		}
 
@@ -189,7 +202,7 @@ func computeFilenameForResource(releaseName string, manifestYaml HelmManifest) s
 }
 
 func getResourcesWithName(releaseName string, resources []string) HelmManifestList {
-	var manifestList = make(HelmManifestList)
+	manifestList := make(HelmManifestList)
 
 	lo.ForEach(resources, func(item string, index int) {
 		itemSplit := strings.Split(item, "\n")
@@ -212,18 +225,20 @@ func getResourcesWithName(releaseName string, resources []string) HelmManifestLi
 
 				log.WithFields(logf.Fields{
 					"releaseName":  releaseName,
-					"assignedName": template_path}).Warn("File does not have a name.")
+					"assignedName": template_path,
+				}).Warn("File does not have a name.")
 			}
 			if err != nil {
 				log.WithFields(logf.Fields{
 					"releaseName":  releaseName,
 					"assignedName": template_path,
-					"error":        errors.TemplateToYamlError}).
+					"error":        errors.TemplateToYamlError,
+				}).
 					Errorf(err.Error())
 				return
 			} else {
 				if lo.IndexOf(lo.Keys(manifestList), template_path) != -1 {
-					hasher := sha1.New()
+					hasher := sha256.New()
 					hasher.Write([]byte(item))
 					sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 					manifestList[template_path+sha+".yaml"] = manifestYaml
@@ -263,7 +278,6 @@ func GetManifestsFromLocalFolderAsString(folderPath string) string {
 }
 
 func ManifestsToString(manifests HelmManifestList) string {
-
 	fileList := lo.Keys(manifests)
 
 	manifest_array := lo.Map(fileList, func(file string, index int) string {
@@ -273,12 +287,11 @@ func ManifestsToString(manifests HelmManifestList) string {
 	return lo.Reduce(manifest_array, func(acc string, item string, index int) string {
 		return acc + MANIFEST_SEPARATOR + item
 	}, "")
-
 }
 
 func readChartsFromLocalFolder(folderPath string) (HelmManifestList, error) {
 	filePath := folderPath + "/%s"
-	var manifestList = make(HelmManifestList)
+	manifestList := make(HelmManifestList)
 	files := lo.Must1(os.ReadDir(folderPath))
 
 	fileList := lo.Reduce(files, func(agg []string, item fs.DirEntry, index int) []string {
@@ -287,7 +300,6 @@ func readChartsFromLocalFolder(folderPath string) (HelmManifestList, error) {
 	manifestYaml := make(map[string]interface{})
 
 	for _, item := range fileList {
-
 		yfile := lo.Must1(os.ReadFile(fmt.Sprintf(filePath, item)))
 		err := yaml.Unmarshal(yfile, manifestYaml)
 		if err != nil {
@@ -299,7 +311,7 @@ func readChartsFromLocalFolder(folderPath string) (HelmManifestList, error) {
 }
 
 /*
-This function returns a map of the generated k8s manifests
+This function returns a map of the generated k8s manifests.
 */
 func GetManifestList(settings *cli.EnvSettings, chartName string, releaseName string, forceLoad bool, folderName string) (HelmManifestList, error) {
 	folderPath := fmt.Sprintf("./%s/", folderName)
@@ -312,7 +324,7 @@ func GetManifestList(settings *cli.EnvSettings, chartName string, releaseName st
 		return readChartsFromLocalFolder(folderPath)
 	} else {
 		if err != nil {
-			lo.Must0(os.Mkdir(folderName, 0750))
+			lo.Must0(os.Mkdir(folderName, 0o750))
 		}
 		log.WithFields(logf.Fields{
 			"chart":       chartName,
@@ -326,13 +338,13 @@ func GetManifestList(settings *cli.EnvSettings, chartName string, releaseName st
 
 /*
 *
-This function returns `true` if the chart is correctly configured, else `false`
+This function returns `true` if the chart is correctly configured, else `false`.
 */
 func ValidateMisconfigurationsInChart(chart HelmManifestList, printError bool) bool {
 	hostNetworkTrue := lo.Must1(regexp.Compile("\"hostNetwork\"[ ]*:[ ]*true"))
 	for _, key := range lo.Keys(chart) {
 		content := lo.Must1(json.Marshal(chart[key]))
-		if hostNetworkTrue.MatchString(string(content)) {
+		if hostNetworkTrue.Match(content) {
 			if printError {
 				fmt.Fprintf(os.Stderr, "\n\033[91mMisconfiguration found in chart: \n%s\nThe hostNetwork flag is set to True, so the applied policies will not have any effect.\nSet it to false to resolve the error.\n\n\033[0m", key)
 			}
@@ -348,11 +360,9 @@ func GetManifestListFromString(manifest string) HelmManifestList {
 }
 
 func GetChartDependencyTreePath(manifestPath string) []string {
-
-	var rgx = regexp.MustCompile(`^([^/]*)|/charts/([^/]*)`)
+	rgx := regexp.MustCompile(`^([^/]*)|/charts/([^/]*)`)
 	rs := rgx.FindAllStringSubmatch(manifestPath, -1)
 	return lo.Map(rs, func(x []string, index int) string {
-
 		if x[1] != "" {
 			return x[1]
 		} else {
@@ -366,20 +376,19 @@ func GetDependencyLabel(manifestPath string) string {
 }
 
 func GetChartName(groupedManifests map[string]HelmManifestList) string {
-	var rgx = regexp.MustCompile(`^([^_]*)`)
+	rgx := regexp.MustCompile(`^([^_]*)`)
 	return rgx.FindString(lo.Keys(groupedManifests)[0])
 }
 
 func GroupManifestsByDependency(manifests HelmManifestList) map[string]HelmManifestList {
 	manifestKeys := lo.Keys(manifests)
-	var manifestList = make(map[string]HelmManifestList)
+	manifestList := make(map[string]HelmManifestList)
 	groupedManifests := lo.Reduce(manifestKeys, func(acc map[string]HelmManifestList, manifestKey string, index int) map[string]HelmManifestList {
 		tree := strings.Split(manifestKey, "/")
 		dependencyLabel := GetDependencyLabel(manifestKey)
 
 		isCRD := strings.Contains(tree[0], "crds")
 		if !isCRD {
-
 			_, ok := acc[dependencyLabel]
 			if !ok {
 				acc[dependencyLabel] = make(HelmManifestList, 0)
@@ -394,10 +403,9 @@ func GroupManifestsByDependency(manifests HelmManifestList) map[string]HelmManif
 }
 
 /*
-Load chart
+Load chart.
 */
 func GetValuesFromChart(namespace string, releaseName string, settings *cli.EnvSettings) (map[string]interface{}, error) {
-
 	actionConfig := new(action.Configuration)
 	client := action.NewInstall(actionConfig)
 
@@ -410,8 +418,10 @@ func GetValuesFromChart(namespace string, releaseName string, settings *cli.EnvS
 		log.WithField("chart", releaseName).Errorf("Chart %s not found", releaseName)
 	} else {
 		log.
-			WithFields(logf.Fields{"chart": releaseName,
-				"name": cp[strings.LastIndex(cp, ",")+1:]}).
+			WithFields(logf.Fields{
+				"chart": releaseName,
+				"name":  cp[strings.LastIndex(cp, ",")+1:],
+			}).
 			Infof("Chart %s found", releaseName)
 		chartReq, err := loader.Load(cp)
 		if err != nil {
@@ -425,10 +435,9 @@ func GetValuesFromChart(namespace string, releaseName string, settings *cli.EnvS
 }
 
 /*
-Load chart and get templates
+Load chart and get templates.
 */
 func GetTemplatesFromChart(namespace string, releaseName string, settings *cli.EnvSettings) ([]*chart.File, error) {
-
 	actionConfig := new(action.Configuration)
 	client := action.NewInstall(actionConfig)
 
@@ -441,8 +450,10 @@ func GetTemplatesFromChart(namespace string, releaseName string, settings *cli.E
 		log.WithField("chart", releaseName).Errorf("Chart %s not found", releaseName)
 	} else {
 		log.
-			WithFields(logf.Fields{"chart": releaseName,
-				"name": cp[strings.LastIndex(cp, ",")+1:]}).
+			WithFields(logf.Fields{
+				"chart": releaseName,
+				"name":  cp[strings.LastIndex(cp, ",")+1:],
+			}).
 			Infof("Chart %s found", releaseName)
 		chartReq, err := loader.Load(cp)
 		if err != nil {
@@ -454,8 +465,8 @@ func GetTemplatesFromChart(namespace string, releaseName string, settings *cli.E
 	}
 	return nil, err
 }
-func SortNetPolPorts(netPolPorts []netv1.NetworkPolicyPort) []netv1.NetworkPolicyPort {
 
+func SortNetPolPorts(netPolPorts []netv1.NetworkPolicyPort) []netv1.NetworkPolicyPort {
 	sort.Slice(netPolPorts, func(i, j int) bool {
 		if netPolPorts[i].Port.Type == 0 {
 			if netPolPorts[j].Port.Type == 0 {
@@ -475,7 +486,6 @@ func SortNetPolPorts(netPolPorts []netv1.NetworkPolicyPort) []netv1.NetworkPolic
 }
 
 func SortEgressPolicies(egressPol []netv1.NetworkPolicyEgressRule) []netv1.NetworkPolicyEgressRule {
-
 	sort.Slice(egressPol, func(i, j int) bool {
 		if egressPol[i].To[0].PodSelector != nil {
 			keyI := lo.Keys(egressPol[i].To[0].PodSelector.MatchLabels)[0]
@@ -537,7 +547,6 @@ func ToSvc(svc string) v1.Service {
 		return theService
 	}
 	return theService
-
 }
 
 func GetNameSpaceFromService(svc HelmManifest) string {

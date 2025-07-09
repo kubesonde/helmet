@@ -14,6 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package core
 
 import (
@@ -83,18 +98,17 @@ func WriteManifestList(manifestList helm.HelmManifestList, output_dir string) er
 		pathName := strings.ReplaceAll(key, "/", helm.FILE_SEPARATOR)
 
 		path := fmt.Sprintf("%s/%s", output_dir, pathName)
-		err2 := os.WriteFile(path, data, 0600)
+		err2 := os.WriteFile(path, data, 0o600)
 		if err2 != nil {
 			return err2
 		}
 	}
 	return nil
 }
+
 func WriteToList(data []byte, filename string, output_dir string) {
-
 	path := fmt.Sprintf("%s/%s", output_dir, filename)
-	lo.Must0(os.WriteFile(path, data, 0600))
-
+	lo.Must0(os.WriteFile(path, data, 0o600))
 }
 
 /*
@@ -107,7 +121,6 @@ Signature of the generated function includes:
   - isMainChart: boolean flag to signal the presence of the main chart
 */
 func prepareNetworkPolicy(_k8sapiIP string, _kubernetesPort int32) func(policyName string, egress_dependencies map[string]helm.HelmManifestList, own_manifest map[string]helm.HelmManifestList, ingress_dependencies map[string]helm.HelmManifestList, isMainChart bool) string {
-
 	return func(policyName string, egress_dependencies map[string]helm.HelmManifestList, own_manifest map[string]helm.HelmManifestList, ingress_dependencies map[string]helm.HelmManifestList, isMainChart bool) string {
 		eDependencyLabelList := lo.Keys(egress_dependencies)
 
@@ -121,8 +134,7 @@ func prepareNetworkPolicy(_k8sapiIP string, _kubernetesPort int32) func(policyNa
 		labelSelector := v1.LabelSelector{
 			MatchLabels: make(map[string]string),
 		}
-		var egress = lo.FlatMap(eDependencyLabelList, func(dependencyName string, index int) []netv1.NetworkPolicyEgressRule {
-
+		egress := lo.FlatMap(eDependencyLabelList, func(dependencyName string, index int) []netv1.NetworkPolicyEgressRule {
 			if strings.Compare(policyName, dependencyName) != 0 {
 				rules := []netv1.NetworkPolicyEgressRule{}
 				svcs := outbound.GetServices(egress_dependencies[dependencyName])
@@ -148,8 +160,10 @@ func prepareNetworkPolicy(_k8sapiIP string, _kubernetesPort int32) func(policyNa
 							To: []netv1.NetworkPolicyPeer{
 								{
 									PodSelector: &v1.LabelSelector{
-										MatchLabels: labels},
-								}},
+										MatchLabels: labels,
+									},
+								},
+							},
 
 							Ports: ports_to_use,
 						})
@@ -157,13 +171,14 @@ func prepareNetworkPolicy(_k8sapiIP string, _kubernetesPort int32) func(policyNa
 				}
 				return rules
 			} else {
-
 				return []netv1.NetworkPolicyEgressRule{{
 					To: []netv1.NetworkPolicyPeer{
 						{
 							PodSelector: &v1.LabelSelector{
-								MatchLabels: map[string]string{HelmetPodLabel: dependencyName}},
-						}},
+								MatchLabels: map[string]string{HelmetPodLabel: dependencyName},
+							},
+						},
+					},
 
 					Ports: nil,
 				}}
@@ -180,22 +195,24 @@ func prepareNetworkPolicy(_k8sapiIP string, _kubernetesPort int32) func(policyNa
 						From: []netv1.NetworkPolicyPeer{
 							{
 								PodSelector: &v1.LabelSelector{},
-							}},
+							},
+						},
 						Ports: portIngress,
-					}}
+					},
+				}
 			} else {
-
 				iDependencyLabelList := lo.Keys(ingress_dependencies)
 				ingress = lo.Map(iDependencyLabelList, func(dependencyName string, index int) netv1.NetworkPolicyIngressRule {
-
 					return netv1.NetworkPolicyIngressRule{
 						From: []netv1.NetworkPolicyPeer{
 							{
 								PodSelector: &v1.LabelSelector{
 									MatchLabels: map[string]string{HelmetPodLabel: dependencyName},
 								},
-							}},
-						Ports: portIngress}
+							},
+						},
+						Ports: portIngress,
+					}
 				})
 			}
 		} else {
@@ -226,7 +243,6 @@ func prepareNetworkPolicy(_k8sapiIP string, _kubernetesPort int32) func(policyNa
 }
 
 func GetKubernetesIPAndPort(client kubernetes.Interface) (string, int32) {
-
 	endpoint := lo.Must1(client.CoreV1().Endpoints("default").Get(context.TODO(), "kubernetes", v1.GetOptions{}))
 	return endpoint.Subsets[0].Addresses[0].IP, endpoint.Subsets[0].Ports[0].Port
 }
@@ -234,7 +250,7 @@ func GetKubernetesIPAndPort(client kubernetes.Interface) (string, int32) {
 /*
 Method that outputs the labels of the dependencies below in the dep tree. Ancestor: a node reachable by repeated proceeding from child to parent.
 Given the tree structure, it outputs all the labels that starts with the current name as a prefix.
-The exact match is excluded (a chart does not dependen on itself)
+The exact match is excluded (a chart does not dependen on itself).
 */
 func FilterDependencyAncestor(dependencyNameList []string, currentName string) []string {
 	var ancestors []string
@@ -250,7 +266,7 @@ func FilterDependencyAncestor(dependencyNameList []string, currentName string) [
 /*
 Method that outputs the labels of the dependencies above in the dep tree. Descendant : a node reachable by repeated proceeding from parent to child.
 Given the tree structure, it outputs all the labels that starts with the current name as a prefix.
-The exact match is excluded (a chart does not dependen on itself)
+The exact match is excluded (a chart does not dependen on itself).
 */
 func FilterDependencyDescendant(dependencyNameList []string, currentName string) []string {
 	var descendants []string
@@ -274,13 +290,12 @@ func DependencyAncestorList(dependencies map[string]helm.HelmManifestList, curre
 /*
 Compute network policies for each dependency
 This function takes as input the list of resources grouped by dependency name and a function used to build policies
-Returns: an array of tuples where each member has a dependency name and a network policy as map
+Returns: an array of tuples where each member has a dependency name and a network policy as map.
 */
 func computeNetworkPoliciesForDependencies(
 	groupedManifests map[string]helm.HelmManifestList,
 	policyBuilder func(key string, egress_dependencies map[string]helm.HelmManifestList, own_manifest map[string]helm.HelmManifestList, ingress_dependencies map[string]helm.HelmManifestList, isMainChart bool) string,
 ) []Retval {
-
 	depNameList := lo.Keys(groupedManifests)
 	depsNetpol := lo.Map(depNameList, func(key string, _ int) Retval {
 		depDescendantList := DependencyDescendantList(groupedManifests, key)
@@ -302,10 +317,8 @@ func computeNetworkPoliciesForDependencies(
 }
 
 func addlabelstopods(groupedManifests map[string]helm.HelmManifestList) {
-
 	depNameList := lo.Keys(groupedManifests)
 	lo.ForEach(depNameList, func(key string, _ int) {
-
 		pods.AddWrapperLabelToPods(groupedManifests[key], HelmetPodLabel)
 	})
 }
@@ -314,18 +327,16 @@ func addlabelstopods(groupedManifests map[string]helm.HelmManifestList) {
 This HoF returns a function to build policies. We need this artifact to store the information about kubernetes IP and port.
 */
 func setupNetworkPolicyBuilder(client kubernetes.Interface) func(key string, egress_dependencies map[string]helm.HelmManifestList, own_manifest map[string]helm.HelmManifestList, ingress_dependencies map[string]helm.HelmManifestList, isMainChart bool) string {
-	var kubernetesIP, kubernetesPort = GetKubernetesIPAndPort(client)
+	kubernetesIP, kubernetesPort := GetKubernetesIPAndPort(client)
 	return prepareNetworkPolicy(kubernetesIP, kubernetesPort)
 }
 
 func GetNamespace(list types.Helmet) string {
-
 	ns := pods.GetNamespace(list.Manifests)
 	namespace := "default"
-	var nameService = ns
+	nameService := ns
 	if nameService != "" {
 		namespace = nameService
-
 	}
 	return namespace
 }
@@ -350,7 +361,6 @@ func ComputeServicePortForGivenService(service helm.HelmManifest, compute_units 
 		if lo.EveryBy(selector_array, func(unit string) bool {
 			return strings.Contains(manifest_string, unit)
 		}) {
-
 			applicable_units[key] = manifest
 		}
 	}
@@ -363,6 +373,8 @@ func ComputeServicePortForGivenService(service helm.HelmManifest, compute_units 
 			defaultProto = service_port.Protocol
 		case corev1.ProtocolSCTP:
 			defaultProto = service_port.Protocol
+		case corev1.ProtocolTCP:
+			defaultProto = corev1.ProtocolTCP
 		default:
 			defaultProto = corev1.ProtocolTCP
 		}
@@ -387,12 +399,10 @@ func ComputeServicePortForGivenService(service helm.HelmManifest, compute_units 
 				}
 			}
 		} else if service_port.TargetPort.Type == intstr.Int && service_port.TargetPort.IntVal != 0 {
-
 			network_policy_ports = append(network_policy_ports, netv1.NetworkPolicyPort{
 				Port:     &service_port.TargetPort,
 				Protocol: &defaultProto,
 			})
-
 		}
 	}
 
@@ -412,7 +422,7 @@ func BuildIngressNetworkPolicyForExternalComponents(dependency_manifests helm.He
 
 /*
 This function prints to the log information regarding service labels and pod labels
-which are used to recognize which pods a service refers to
+which are used to recognize which pods a service refers to.
 */
 func ComputePortInformation(groupedManifests map[string]helm.HelmManifestList) {
 	for dependency, manifests := range groupedManifests {
@@ -432,15 +442,14 @@ func ComputePortInformation(groupedManifests map[string]helm.HelmManifestList) {
 				if lo.EveryBy(selector_array, func(unit string) bool {
 					return strings.Contains(manifest_string, unit)
 				}) {
-
 					applicable_units[key] = manifest
 				}
 			}
 			container_ports := outbound.ManifestToComputeUnitPortsDebug(applicable_units)
-			json_ports_compute, _ := json.Marshal(container_ports)
+			json_ports_compute := lo.Must1(json.Marshal(container_ports))
 			svcManifests := helm.HelmManifestList{}
 			svcManifests["test"] = service
-			json_ports_svc, _ := json.Marshal(outbound.ManifestToIngressNetPolPortDebug(svcManifests))
+			json_ports_svc := lo.Must1(json.Marshal(outbound.ManifestToIngressNetPolPortDebug(svcManifests)))
 
 			var servicename interface{}
 			v, ok := service["metadata"].(helm.HelmManifest)
@@ -450,13 +459,17 @@ func ComputePortInformation(groupedManifests map[string]helm.HelmManifestList) {
 				servicename = service["metadata"].(map[string]interface{})["name"]
 			}
 
-			log.WithFields(logf.Fields{"dependency": dependency, "selector": selector_array,
-				"service": servicename, "computeUnits": outbound.GetComputeUnitsNames(applicable_units), "containerPorts": string(json_ports_compute), "servicePorts": string(json_ports_svc)}).Info("ComputePortInformation")
+			log.WithFields(logf.Fields{
+				"dependency": dependency, "selector": selector_array,
+				"service": servicename, "computeUnits": outbound.GetComputeUnitsNames(applicable_units), "containerPorts": string(json_ports_compute), "servicePorts": string(json_ports_svc),
+			}).Info("ComputePortInformation")
 
 			cu_labels := outbound.GetComputeUnitsLabels(applicable_units)
 
-			log.WithFields(logf.Fields{"dependency": dependency,
-				"service": servicename, "serviceSelector": string(lo.Must1(json.Marshal(selector_array))), "cuName": string(lo.Must1(json.Marshal(cu_labels)))}).Info("ServiceInformation")
+			log.WithFields(logf.Fields{
+				"dependency": dependency,
+				"service":    servicename, "serviceSelector": string(lo.Must1(json.Marshal(selector_array))), "cuName": string(lo.Must1(json.Marshal(cu_labels))),
+			}).Info("ServiceInformation")
 		}
 	}
 }
@@ -465,7 +478,7 @@ func SecureWholeChartFromList(Helmet types.Helmet, client kubernetes.Interface, 
 	stats := ChartStats{}
 
 	policyBuilder := setupNetworkPolicyBuilder(client)
-	var groupedManifests = helm.GroupManifestsByDependency(Helmet.Manifests)
+	groupedManifests := helm.GroupManifestsByDependency(Helmet.Manifests)
 	log.WithFields(logf.Fields{"TotalDependencies": len(groupedManifests)}).Info("STATS")
 	if len(groupedManifests) == 0 {
 		log.Error("Chart is empty. Cannot process data")
@@ -473,8 +486,8 @@ func SecureWholeChartFromList(Helmet types.Helmet, client kubernetes.Interface, 
 	}
 
 	chartName := helm.GetChartName(groupedManifests)
-	var dependencies = lo.OmitByKeys(groupedManifests, []string{chartName})
-	var template = groupedManifests[chartName]
+	dependencies := lo.OmitByKeys(groupedManifests, []string{chartName})
+	template := groupedManifests[chartName]
 	depTree := map[string][]string{}
 	ancestors := map[string][]string{}
 	for _, dep := range lo.Keys(groupedManifests) {
@@ -531,12 +544,12 @@ func SecureWholeChartFromList(Helmet types.Helmet, client kubernetes.Interface, 
 func AddCustomLabelsToChart(Helmet types.Helmet, client kubernetes.Interface, output_dir string) (helm.HelmManifestList, error) {
 	stats := ChartStats{}
 
-	var groupedManifests = helm.GroupManifestsByDependency(Helmet.Manifests)
+	groupedManifests := helm.GroupManifestsByDependency(Helmet.Manifests)
 	log.WithFields(logf.Fields{"TotalDependencies": len(groupedManifests)}).Info("STATS")
 
 	chartName := helm.GetChartName(groupedManifests)
-	var dependencies = lo.OmitByKeys(groupedManifests, []string{chartName})
-	var template = groupedManifests[chartName]
+	dependencies := lo.OmitByKeys(groupedManifests, []string{chartName})
+	template := groupedManifests[chartName]
 
 	stats.Dependencies = lo.Keys(groupedManifests)
 

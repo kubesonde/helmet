@@ -14,6 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package graph
 
 import (
@@ -23,26 +38,24 @@ import (
 	"strconv"
 	"strings"
 
-	"helmet.io/pkg/errors"
-
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"helmet.io/pkg/core"
+	"helmet.io/pkg/errors"
 	"helmet.io/pkg/helm"
 	"helmet.io/pkg/logging"
 	"helmet.io/pkg/outbound"
 	"helmet.io/pkg/types"
+	"helmet.io/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-var (
-	log = logging.LOGGER.WithFields(logrus.Fields{
-		"package": "graph",
-	})
-)
+var log = logging.LOGGER.WithFields(logrus.Fields{
+	"package": "graph",
+})
 
 func Type_of_edge(edge types.HelmET_Edge, ancestors map[string][]string) string {
 	if edge.Source.DependencyName == edge.Destination.DependencyName {
@@ -63,7 +76,6 @@ func Type_of_edge(edge types.HelmET_Edge, ancestors map[string][]string) string 
 }
 
 func serviceInConfigMap(config_map string, serviceName string) bool {
-
 	if strings.Contains(config_map, fmt.Sprintf("://%s:", serviceName)) {
 		return true
 	}
@@ -75,17 +87,13 @@ func serviceInConfigMap(config_map string, serviceName string) bool {
 
 func isServiceName(env_var string, serviceName string) bool {
 	if env_var == serviceName {
-
 		return true
 	} else {
-
 		if strings.Contains(env_var, serviceName) && strings.Contains(env_var, "cluster.local") {
-
 			return true
 		}
 
 		if strings.Contains(env_var, fmt.Sprintf("://%s:", serviceName)) {
-
 			return true
 		}
 
@@ -96,9 +104,7 @@ func isServiceName(env_var string, serviceName string) bool {
 		}
 
 		return strings.Contains(env_var, fmt.Sprintf("\"%s\"", serviceName))
-
 	}
-
 }
 
 func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, nodes []types.HelmET_Node) []types.HelmET_Edge {
@@ -106,11 +112,9 @@ func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, no
 
 	for _, src_node := range nodes {
 		envVars := lo.FilterMap(src_node.ComputeUnit.EnvVars, func(variable v1.EnvVar, _ int) (string, bool) {
-
 			if strings.Contains(strings.ToLower(variable.Name), "_user") || strings.Contains(strings.ToLower(variable.Name), "_database") ||
 				strings.Contains(strings.ToLower(variable.Name), "_db") ||
 				strings.Contains(variable.Name, "ELASTICSEARCH_CLUSTER_NAME") {
-
 				return "", false
 			}
 			return variable.Value, true
@@ -118,13 +122,11 @@ func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, no
 
 		env_and_args := append(append(envVars, src_node.ComputeUnit.Arguments...), src_node.ComputeUnit.Commands...)
 		for _, value := range env_and_args {
-
 			if value != "" {
 				for _, dst_node := range nodes {
 					if src_node.Name != dst_node.Name {
 						for _, svc := range dst_node.Services {
 							if isServiceName(value, svc.Name) {
-
 								cleanedEnvVar := strings.ReplaceAll(value, svc.Name, "")
 
 								re := regexp.MustCompile(`[:\[]\d{2,5}`)
@@ -138,7 +140,7 @@ func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, no
 										edges = append(edges, types.HelmET_Edge{
 											Source:      src_node,
 											Destination: dst_node,
-											Port:        int32(port),
+											Port:        lo.Must1(utils.IntToInt32(port)),
 										})
 									}
 								}
@@ -151,7 +153,6 @@ func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, no
 										})
 									}
 								}
-
 							}
 						}
 					}
@@ -160,12 +161,10 @@ func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, no
 		}
 
 		for _, configMap := range src_node.ComputeUnit.ConfigMaps {
-
 			for _, dst_node := range nodes {
 				if src_node.Name != dst_node.Name {
 					for _, svc := range dst_node.Services {
 						if serviceInConfigMap(configMap, svc.Name) {
-
 							portMissing := true
 							if portMissing {
 								for _, svc_port := range svc.ServicePorts {
@@ -177,14 +176,11 @@ func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, no
 									})
 								}
 							}
-
 						}
 					}
 				}
 			}
-
 		}
-
 	}
 	return lo.UniqBy(edges, func(edge types.HelmET_Edge) string {
 		return fmt.Sprintf("%s-%s-%d", edge.DestinationService.Name, edge.Source.Name, edge.Port)
@@ -192,7 +188,7 @@ func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, no
 }
 
 func GetAcenstorsDescendants(manifestList helm.HelmManifestList) (map[string][]string, map[string][]string) {
-	var groupedManifests = helm.GroupManifestsByDependency(manifestList)
+	groupedManifests := helm.GroupManifestsByDependency(manifestList)
 
 	descendants := map[string][]string{}
 	ancestors := map[string][]string{}
@@ -272,10 +268,8 @@ func ComputeEdgesWithDependencyInformation(manifestList helm.HelmManifestList, n
 }
 
 func ComputeEdgesWithDependencyInformationCompact(descendants map[string][]string, nodesPerDependency map[string][]types.HelmET_Node) []types.HelmET_Edge {
-
 	edges := []types.HelmET_Edge{}
 	for item, children := range descendants {
-
 		sourceNodes := nodesPerDependency[item]
 		for _, descendantDep := range children {
 			destNodes := nodesPerDependency[descendantDep]
@@ -289,10 +283,9 @@ func ComputeEdgesWithDependencyInformationCompact(descendants map[string][]strin
 
 func GetHelmetNodesWithDependencies(manifestList helm.HelmManifestList) []types.HelmET_Node {
 	nodes := []types.HelmET_Node{}
-	var groupedManifests = helm.GroupManifestsByDependency(manifestList)
+	groupedManifests := helm.GroupManifestsByDependency(manifestList)
 
 	for dependency, manifests := range groupedManifests {
-
 		helmetServices := outbound.GetHelmetServices(manifests)
 		computeUnits := outbound.GetComputeUnitsDetails(manifests)
 		for _, computeUnit := range computeUnits {
@@ -313,7 +306,6 @@ func GetHelmetNodesWithDependencies(manifestList helm.HelmManifestList) []types.
 				if lo.EveryBy(lo.Entries(service.Selector), func(entry lo.Entry[string, string]) bool {
 					return computeUnit.Labels[entry.Key] == entry.Value
 				}) {
-
 					node.Services = append(node.Services, service)
 					logging.LOGGER.WithFields(logrus.Fields{
 						"dependency":       node.DependencyName,
@@ -333,7 +325,6 @@ func GetHelmetNodesWithDependencies(manifestList helm.HelmManifestList) []types.
 }
 
 func CommonAndDisjoint(list1, list2 []types.HelmET_Edge) (common, disjointFromFirst, disjointFromSecond []types.HelmET_Edge) {
-
 	matched := make(map[int]bool)
 
 	for _, p1 := range list1 {
@@ -369,7 +360,6 @@ func MergeGraphs(list1, list2 []types.HelmET_Edge) []types.HelmET_Edge {
 }
 
 func edgeToNetworkPolicyEgress(edge types.HelmET_Edge) netv1.NetworkPolicy {
-
 	toKubeSystemNS := netv1.NetworkPolicyPeer{
 		NamespaceSelector: &metav1.LabelSelector{
 			MatchLabels: map[string]string{"kubernetes.io/metadata.name": "kube-system"},
@@ -429,7 +419,8 @@ func edgeToNetworkPolicyEgress(edge types.HelmET_Edge) netv1.NetworkPolicy {
 				Port:     &edgeport,
 				Protocol: &proto,
 			}},
-		}, {
+		},
+		{
 			To:    []netv1.NetworkPolicyPeer{toKubeSystemNS},
 			Ports: []netv1.NetworkPolicyPort{DNSuDPpOrt, DNStCPpOrt},
 		},
@@ -445,21 +436,19 @@ func fixProto(protocol v1.Protocol) v1.Protocol {
 }
 
 func getContainerPortMappingServicePort(destnode types.HelmET_Node, destservice types.HelmET_Service, port int) netv1.NetworkPolicyPort {
-
 	if destservice.Headless {
 		targetContainerPort, _ := lo.Find(destnode.ComputeUnit.ContainerPorts, func(cport v1.ContainerPort) bool {
-			return cport.ContainerPort == int32(port)
+			return cport.ContainerPort == lo.Must1(utils.IntToInt32(port))
 		})
 		theport := intstr.FromInt(port)
 		return netv1.NetworkPolicyPort{
 			Port:     &theport,
 			Protocol: &targetContainerPort.Protocol,
 		}
-
 	} else if len(destservice.ServicePorts) == 0 {
 		log.Warnf("No service detected in compute unit %s - port %d", destnode.ComputeUnit.Name, port)
 		targetContainerPort, found := lo.Find(destnode.ComputeUnit.ContainerPorts, func(cport v1.ContainerPort) bool {
-			return cport.ContainerPort == int32(port)
+			return cport.ContainerPort == lo.Must1(utils.IntToInt32(port))
 		})
 		if !found {
 			log.WithField("error", errors.ServiceIssue).Errorf("There are no services and the container do not expose the port %d", port)
@@ -485,7 +474,7 @@ func getContainerPortMappingServicePort(destnode types.HelmET_Node, destservice 
 		return netpolPort
 	}
 	targetServicePort, found := lo.Find(destservice.ServicePorts, func(svcport v1.ServicePort) bool {
-		return svcport.Port == int32(port)
+		return svcport.Port == lo.Must1(utils.IntToInt32(port))
 	})
 	if !found {
 		fmt.Println("ERRORRRR", port, destservice)
@@ -550,10 +539,11 @@ func edgeToNetworkPolicyIngress(edge types.HelmET_Edge) netv1.NetworkPolicy {
 			PodSelector: &labelSelector,
 		}},
 
-		Ports: []netv1.NetworkPolicyPort{{
-			Port:     netpolPort.Port,
-			Protocol: &proto,
-		},
+		Ports: []netv1.NetworkPolicyPort{
+			{
+				Port:     netpolPort.Port,
+				Protocol: &proto,
+			},
 			{
 				Port:     &edgeport,
 				Protocol: &proto,
@@ -578,7 +568,6 @@ func EdgesToNetworkPolicy(edges []types.HelmET_Edge) []netv1.NetworkPolicy {
 }
 
 func ProcessChart(manifestList helm.HelmManifestList) []netv1.NetworkPolicy {
-
 	ancestors, descendants := GetAcenstorsDescendants(manifestList)
 	log.
 		WithFields(logrus.Fields{"dependencies": lo.Keys(ancestors), "descendants": descendants, "ancestors": ancestors}).
@@ -609,11 +598,13 @@ func ProcessChart(manifestList helm.HelmManifestList) []netv1.NetworkPolicy {
 
 	for _, edge := range commonEdges {
 		log.
-			WithFields(logrus.Fields{"source": edge.Source.Name,
+			WithFields(logrus.Fields{
+				"source":      edge.Source.Name,
 				"destination": edge.Destination.Name,
 				"port":        edge.Port,
 				"type":        Type_of_edge(edge, ancestors),
-				"origin":      "common"},
+				"origin":      "common",
+			},
 			).
 			Infof("(%s) %s -%d➡ %s", Type_of_edge(edge, ancestors), edge.Source.Name, edge.Port, edge.Destination.Name)
 	}
@@ -621,11 +612,13 @@ func ProcessChart(manifestList helm.HelmManifestList) []netv1.NetworkPolicy {
 	if len(onlyDep) > 0 {
 		for _, edge := range onlyDep {
 			log.
-				WithFields(logrus.Fields{"source": edge.Source.Name,
+				WithFields(logrus.Fields{
+					"source":      edge.Source.Name,
 					"destination": edge.Destination.Name,
 					"port":        edge.Port,
 					"type":        Type_of_edge(edge, ancestors),
-					"origin":      "dependency"},
+					"origin":      "dependency",
+				},
 				).
 				Infof("(%s) %s -%d➡ %s", Type_of_edge(edge, ancestors), edge.Source.Name, edge.Port, edge.Destination.Name)
 		}
@@ -633,14 +626,15 @@ func ProcessChart(manifestList helm.HelmManifestList) []netv1.NetworkPolicy {
 	if len(onlyEnvVar) > 0 {
 		for _, edge := range onlyEnvVar {
 			log.
-				WithFields(logrus.Fields{"source": edge.Source.Name,
+				WithFields(logrus.Fields{
+					"source":      edge.Source.Name,
 					"destination": edge.Destination.Name,
 					"port":        edge.Port,
 					"type":        Type_of_edge(edge, ancestors),
-					"origin":      "environment"},
+					"origin":      "environment",
+				},
 				).
 				Infof("(%s) %s -%d➡ %s", Type_of_edge(edge, ancestors), edge.Source.Name, edge.Port, edge.Destination.Name)
-
 		}
 	}
 
@@ -651,11 +645,13 @@ func ProcessChart(manifestList helm.HelmManifestList) []netv1.NetworkPolicy {
 			labelSelector := metav1.LabelSelector{
 				MatchLabels: map[string]string{"component": "kube-apiserver"},
 			}
-			log.WithFields(logrus.Fields{"source": node.Name,
+			log.WithFields(logrus.Fields{
+				"source":      node.Name,
 				"destination": "kube-apiserver",
 				"port":        "any",
 				"type":        "EXTERNAL",
-				"origin":      "custom"},
+				"origin":      "custom",
+			},
 			).Infof("(CUSTOM) %s -any➡ kube-apiserver", node.Name)
 			return netv1.NetworkPolicy{
 				TypeMeta: metav1.TypeMeta{
@@ -671,32 +667,32 @@ func ProcessChart(manifestList helm.HelmManifestList) []netv1.NetworkPolicy {
 					PodSelector: metav1.LabelSelector{
 						MatchLabels: node.ComputeUnit.Labels,
 					},
-					Egress: []netv1.NetworkPolicyEgressRule{{
-						To: []netv1.NetworkPolicyPeer{{
-							PodSelector: &labelSelector,
-						}},
-					}, {
-						To: []netv1.NetworkPolicyPeer{
-
-							{
-								IPBlock: &netv1.IPBlock{
-									CIDR: "10.96.0.1/32",
+					Egress: []netv1.NetworkPolicyEgressRule{
+						{
+							To: []netv1.NetworkPolicyPeer{{
+								PodSelector: &labelSelector,
+							}},
+						}, {
+							To: []netv1.NetworkPolicyPeer{
+								{
+									IPBlock: &netv1.IPBlock{
+										CIDR: "10.96.0.1/32",
+									},
 								},
-							},
-							{
-								IPBlock: &netv1.IPBlock{
-									CIDR: "192.168.0.0/16",
+								{
+									IPBlock: &netv1.IPBlock{
+										CIDR: "192.168.0.0/16",
+									},
 								},
 							},
 						},
 					},
-					}}}
-
+				},
+			}
 		})
 
 		policies = append(policies, kubeapi_policies...)
 	}
 
 	return policies
-
 }

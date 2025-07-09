@@ -14,6 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package core
 
 import (
@@ -23,6 +38,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 	"helmet.io/pkg/helm"
 	"helmet.io/pkg/pods"
@@ -55,7 +71,6 @@ func mockClient() kubernetes.Interface {
 
 	lo.Must(client.CoreV1().Endpoints("default").Create(context.TODO(), endpoint, metav1.CreateOptions{}))
 	return client
-
 }
 
 func Test_writeManifestList(t *testing.T) {
@@ -74,15 +89,19 @@ func Test_writeManifestList(t *testing.T) {
 }
 
 func TestFilterDependencyDescendant(t *testing.T) {
-	dep := []string{"wordpress_mariadb_dep",
+	dep := []string{
+		"wordpress_mariadb_dep",
 		"wordpress_mariadb",
 		"wordpress_postgresql",
-		"wordpress"}
+		"wordpress",
+	}
 	descendant := FilterDependencyDescendant(dep, "wordpress")
 	assert.Equal(t, dep, descendant)
 	descendant = FilterDependencyDescendant(dep, "wordpress_mariadb")
-	assert.Equal(t, []string{"wordpress_mariadb_dep",
-		"wordpress_mariadb"}, descendant)
+	assert.Equal(t, []string{
+		"wordpress_mariadb_dep",
+		"wordpress_mariadb",
+	}, descendant)
 	descendant = FilterDependencyDescendant(dep, "wordpress_mariadb_dep")
 	assert.Equal(t, []string{"wordpress_mariadb_dep"}, descendant)
 	descendant = FilterDependencyDescendant(dep, "redis")
@@ -91,10 +110,12 @@ func TestFilterDependencyDescendant(t *testing.T) {
 }
 
 func TestFilterDependencyAncestor(t *testing.T) {
-	dep := []string{"wordpress_mariadb_dep",
+	dep := []string{
+		"wordpress_mariadb_dep",
 		"wordpress_mariadb",
 		"wordpress_postgresql",
-		"wordpress"}
+		"wordpress",
+	}
 	descendant := FilterDependencyAncestor(dep, "wordpress")
 	var empty []string
 	assert.Equal(t, empty, descendant)
@@ -103,14 +124,14 @@ func TestFilterDependencyAncestor(t *testing.T) {
 	descendant = FilterDependencyAncestor(dep, "wordpress_mariadb_dep")
 	assert.Equal(t, []string{
 		"wordpress_mariadb",
-		"wordpress"}, descendant)
+		"wordpress",
+	}, descendant)
 	descendant = FilterDependencyAncestor(dep, "redis")
 
 	assert.Equal(t, empty, descendant)
 }
 
 func TestAddLabelsMainChart(t *testing.T) {
-
 	expectedPod := v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Pod",
@@ -134,11 +155,9 @@ func TestAddLabelsMainChart(t *testing.T) {
 	podManifestBytes := lo.Must1(yaml.Marshal(manifests["main/templates/pod1.yaml"]))
 
 	assert.Equal(t, expectedPod, testutils.ToPod(string(podManifestBytes)))
-
 }
 
 func TestSecureMainChart(t *testing.T) {
-
 	expected_policy := netv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
@@ -305,15 +324,15 @@ func TestComputeNetworkPoliciesForDependencies(t *testing.T) {
 	sortedEgressPol = helm.SortEgressPolicies(expected_policy.Spec.Egress)
 	expected_policy.Spec.Egress = sortedEgressPol
 	assert.Equal(t, expected_policy, netPol)
-
 }
 
 func Test_SecureWholeChart(t *testing.T) {
-
-	expected_entries := []string{"mychart_dependency--netpol.yaml",
+	expected_entries := []string{
+		"mychart_dependency--netpol.yaml",
 		"mychart/charts/dependency/templates/mydep.yaml",
 		"mychart/templates/abc.yaml",
-		"mychart--netpol.yaml"}
+		"mychart--netpol.yaml",
+	}
 	dependency := testutils.NewChart("dependency")
 	dependency.AddPod(v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -334,29 +353,28 @@ func Test_SecureWholeChart(t *testing.T) {
 	}
 
 	retval, _, _, err := SecureWholeChartFromList(hw, mockClient(), t.TempDir())
-
 	if err != nil {
-		assert.Nilf(t, err, "Error while executing test: %s", err.Error())
+		require.NoErrorf(t, err, "Error while executing test: %s", err.Error())
 	}
 
 	for _, value := range expected_entries {
-
 		val, ok := retval[value]
 
-		assert.Equal(t, ok, true, "Chart for %s not found", value)
+		assert.True(t, ok, "Chart for %s not found", value)
 		assert.NotNilf(t, val, "Chart for %s is empty", value)
 	}
 }
 
 func Test_MultipleServices(t *testing.T) {
-
-	expected_entries := []string{"mychart_dependency--netpol.yaml",
+	expected_entries := []string{
+		"mychart_dependency--netpol.yaml",
 		"mychart/charts/dependency/templates/pod1.yaml",
 		"mychart/charts/dependency/templates/pod2.yaml",
 		"mychart/charts/dependency/templates/svc.yaml",
 
 		"mychart/templates/mainpod.yaml",
-		"mychart--netpol.yaml"}
+		"mychart--netpol.yaml",
+	}
 
 	dependency := testutils.NewChart("dependency")
 	dependency.AddPod(v1.Pod{
@@ -368,11 +386,11 @@ func Test_MultipleServices(t *testing.T) {
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				v1.Container{
+				{
 					Name:  "testcontainer",
 					Image: "docker.io/myimage",
 					Ports: []v1.ContainerPort{
-						v1.ContainerPort{ContainerPort: 8080},
+						{ContainerPort: 8080},
 					},
 				},
 			},
@@ -387,11 +405,11 @@ func Test_MultipleServices(t *testing.T) {
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
-				v1.Container{
+				{
 					Name:  "testcontainer",
 					Image: "docker.io/myimage",
 					Ports: []v1.ContainerPort{
-						v1.ContainerPort{ContainerPort: 8080},
+						{ContainerPort: 8080},
 					},
 				},
 			},
@@ -430,17 +448,14 @@ func Test_MultipleServices(t *testing.T) {
 	}
 
 	retval, _, _, err := SecureWholeChartFromList(hw, mockClient(), t.TempDir())
-
 	if err != nil {
-		assert.Nilf(t, err, "Error while executing test: %s", err.Error())
+		require.NoErrorf(t, err, "Error while executing test: %s", err.Error())
 	}
 
 	for _, value := range expected_entries {
-
 		val, ok := retval[value]
 
-		assert.Equal(t, ok, true, "Chart for %s not found", value)
+		assert.True(t, ok, "Chart for %s not found", value)
 		assert.NotNilf(t, val, "Chart for %s is empty", value)
 	}
-
 }

@@ -14,23 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package core
 
 import (
 	"io"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"helmet.io/pkg/helm"
-	. "helmet.io/pkg/testutils"
 	"helmet.io/pkg/types"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "helmet.io/pkg/testutils"
 )
 
 var (
@@ -87,7 +103,6 @@ var (
 				},
 			},
 			Egress: []netv1.NetworkPolicyEgressRule{
-
 				{
 					To: []netv1.NetworkPolicyPeer{
 						{
@@ -137,11 +152,11 @@ var _ = Describe("Helmet:", func() {
 			var err error
 			outputManifests, _, _, err = SecureWholeChartFromList(
 				getDefaultHelmet(chart.Build()), mockClient(), "/tmp")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("has the correct number of manifests", func() {
-			Expect(len(lo.Keys(outputManifests))).To(Equal(3))
+			Expect(lo.Keys(outputManifests)).To(HaveLen(3))
 		})
 
 		It("produces the correct manifests", func() {
@@ -151,7 +166,6 @@ var _ = Describe("Helmet:", func() {
 				_, ok := outputManifests[name]
 				Expect(ok).To(BeTrue(), "Manifest %s not found %v", name, lo.Keys(outputManifests))
 			}
-
 		})
 
 		It("manifests have the correct content", func() {
@@ -167,7 +181,6 @@ var _ = Describe("Helmet:", func() {
 			netPol.Spec.Egress = helm.SortEgressPolicies(netPol.Spec.Egress)
 
 			Expect(expectedMainNetPol).To(Equal(netPol))
-
 		})
 	})
 
@@ -198,11 +211,11 @@ var _ = Describe("Helmet:", func() {
 			var err error
 			outputManifests, _, _, err = SecureWholeChartFromList(
 				getDefaultHelmet(chart.Build()), mockClient(), "/tmp")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("has the correct number of manifests", func() {
-			Expect(len(lo.Keys(outputManifests))).To(Equal(6))
+			Expect(lo.Keys(outputManifests)).To(HaveLen(6))
 		})
 
 		It("produces the correct manifests", func() {
@@ -219,7 +232,6 @@ var _ = Describe("Helmet:", func() {
 				_, ok := outputManifests[name]
 				Expect(ok).To(BeTrue(), "Manifest %s not found %v", name, lo.Keys(outputManifests))
 			}
-
 		})
 
 		It("manifests have the correct content", func() {
@@ -284,7 +296,6 @@ var _ = Describe("Helmet:", func() {
 						},
 					},
 					Egress: []netv1.NetworkPolicyEgressRule{
-
 						{
 							To: []netv1.NetworkPolicyPeer{
 								{
@@ -333,7 +344,6 @@ var _ = Describe("Helmet:", func() {
 			netPol.Spec.Ingress = helm.SortIngressPolicies(netPol.Spec.Ingress)
 
 			Expect(updated_main_pol).To(Equal(netPol))
-
 		})
 	})
 
@@ -413,11 +423,11 @@ var _ = Describe("Helmet:", func() {
 			var err error
 			outputManifests, _, _, err = SecureWholeChartFromList(
 				getDefaultHelmet(chart.Build()), mockClient(), "/tmp")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("has the correct number of manifests", func() {
-			Expect(len(lo.Keys(outputManifests))).To(Equal(12))
+			Expect(lo.Keys(outputManifests)).To(HaveLen(12))
 		})
 
 		It("produces the correct manifests", func() {
@@ -440,7 +450,6 @@ var _ = Describe("Helmet:", func() {
 				_, ok := outputManifests[name]
 				Expect(ok).To(BeTrue(), "Manifest %s not found %v", name, lo.Keys(outputManifests))
 			}
-
 		})
 
 		It("manifests have the correct content", func() {
@@ -590,7 +599,6 @@ var _ = Describe("Helmet:", func() {
 						},
 					},
 					Egress: []netv1.NetworkPolicyEgressRule{
-
 						{
 							To: []netv1.NetworkPolicyPeer{
 								{
@@ -665,7 +673,6 @@ var _ = Describe("Helmet:", func() {
 			log.Info(netPol.Spec.Egress)
 			netPol.Spec.Ingress = helm.SortIngressPolicies(netPol.Spec.Ingress)
 			Expect(updated_main_pol).To(Equal(netPol))
-
 		})
 
 		It("a dependency cannot reach main or other dependencies", func() {
@@ -694,7 +701,8 @@ var _ = Describe("Helmet:", func() {
 							From: []netv1.NetworkPolicyPeer{
 								{
 									PodSelector: &metav1.LabelSelector{
-										MatchLabels: map[string]string{"helmet.io/chart": "main"}},
+										MatchLabels: map[string]string{"helmet.io/chart": "main"},
+									},
 								},
 							},
 						},
@@ -710,7 +718,6 @@ var _ = Describe("Helmet:", func() {
 						},
 					},
 					Egress: []netv1.NetworkPolicyEgressRule{
-
 						{
 							To: []netv1.NetworkPolicyPeer{
 								{
@@ -745,11 +752,8 @@ var _ = Describe("Helmet:", func() {
 			netPol.Spec.Ingress = helm.SortIngressPolicies(netPol.Spec.Ingress)
 
 			Expect(updated_main_pol).To(Equal(netPol))
-
 		})
-
 	})
-
 })
 
 func getDefaultHelmet(manifests helm.HelmManifestList) types.Helmet {

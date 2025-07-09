@@ -1,3 +1,18 @@
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package main
 
 import (
@@ -8,8 +23,6 @@ import (
 
 	"github.com/samber/lo"
 	logf "github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
-
 	"helm.sh/helm/v3/pkg/cli"
 	"helmet.io/pkg/boundaries"
 	"helmet.io/pkg/core"
@@ -17,15 +30,14 @@ import (
 	"helmet.io/pkg/graph"
 	"helmet.io/pkg/helm"
 	"helmet.io/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	yaml "sigs.k8s.io/yaml"
 )
 
-var (
-	log = logf.WithFields(logf.Fields{
-		"package": "main-script",
-	})
-)
+var log = logf.WithFields(logf.Fields{
+	"package": "main-script",
+})
 
 func init() {
 	logf.SetFormatter(&logf.TextFormatter{
@@ -59,11 +71,9 @@ func SecureWholeChart(settings *cli.EnvSettings, chartName string, releaseName s
 		runWithCustomConfig(hw, apiClient, config_available, output_dir)
 		fmt.Printf("Chart %s processed successfully using %s configuration.\n Output folder: yaml", chartName, config_available)
 	}
-
 }
 
 func runWithCustomConfig(hw types.Helmet, apiClient kubernetes.Interface, config_available string, output_dir string) {
-
 	log.Info(fmt.Sprintf("Reading configuration file %s", config_available))
 	content := lo.Must(boundaries.ReadHelmETConfigsFromYAML(config_available))
 	ancestors, _ := graph.GetAcenstorsDescendants(hw.Manifests)
@@ -102,7 +112,6 @@ func runWithDefaultConfig(hw types.Helmet, output_dir string) {
 		manifestYaml := make(helm.HelmManifest)
 		lo.Must0(yaml.Unmarshal([]byte(netpol_str), manifestYaml))
 		manifests[fmt.Sprintf("%s.yaml", netpol.Name)] = manifestYaml
-
 	}
 	_, descendants := graph.GetAcenstorsDescendants(hw.Manifests)
 	configs := boundaries.NetworkPoliciesToTemplate(netpols, descendants)
@@ -112,14 +121,13 @@ func runWithDefaultConfig(hw types.Helmet, output_dir string) {
 }
 
 func main() {
-
 	output_dir := "yaml"
 
-	var chartName = flag.String("chartName", "bitnami/wordpress", "the chart name to run the tool with")
+	chartName := flag.String("chartName", "bitnami/wordpress", "the chart name to run the tool with")
 
-	var releaseName = flag.String("release", "wordpress", "the name of the release")
+	releaseName := flag.String("release", "wordpress", "the name of the release")
 
-	var forceLoad = flag.Bool("forceLoad", true, "Force chart load, omitting ./yaml")
+	forceLoad := flag.Bool("forceLoad", true, "Force chart load, omitting ./yaml")
 
 	flag.Parse()
 	dependencyLabelKey := "helmet.io/chart"

@@ -14,17 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package helm
 
 import (
 	"sort"
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	"gopkg.in/yaml.v3"
 	"gotest.tools/v3/assert"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 func TestHelmUtils(t *testing.T) {
@@ -42,7 +58,7 @@ var _ = Describe("GroupManifestsByDependency", func() {
 		groupedManifests := GroupManifestsByDependency(manifests)
 
 		Expect(lo.Keys(groupedManifests)).To(Equal([]string{"mychart"}))
-		Expect(len(groupedManifests["mychart"])).To(Equal(2))
+		Expect(groupedManifests["mychart"]).To(HaveLen(2))
 	})
 	It("Creates two entries if there is a single dependency", func() {
 		manifests := HelmManifestList{
@@ -58,8 +74,8 @@ var _ = Describe("GroupManifestsByDependency", func() {
 		sort.Strings(keys)
 
 		Expect(keys).To(Equal([]string{"mychart", "mychart_mydep"}))
-		Expect(len(groupedManifests["mychart"])).To(Equal(1))
-		Expect(len(groupedManifests["mychart_mydep"])).To(Equal(2))
+		Expect(groupedManifests["mychart"]).To(HaveLen(1))
+		Expect(groupedManifests["mychart_mydep"]).To(HaveLen(2))
 	})
 })
 
@@ -117,8 +133,8 @@ nothing:
 
 var _ = Describe("getResourcesWithName", func() {
 	It("Finds resources", func() {
-		var releaseName = "testRelease"
-		var resources = []string{
+		releaseName := "testRelease"
+		resources := []string{
 			`# Source: folder1/example-pod.yaml
 apiVersion: v1
 kind: Pod
@@ -162,7 +178,6 @@ spec:
 		for k := range manifestList {
 			Expect(lo.Contains(expectedKeys, k)).To(BeTrue())
 		}
-
 	})
 })
 
@@ -180,12 +195,11 @@ var _ = Describe("validateMisconfigurationsInChart", func() {
 })
 
 func Test_getNameSpaceFromService(t *testing.T) {
-
-	var exampleService = make(HelmManifest)
-	var nameSpace = make(map[string]interface{})
+	exampleService := make(HelmManifest)
+	nameSpace := make(map[string]interface{})
 	nameSpace["namespace"] = "customNamespace"
 	nameSpace["name"] = "custom"
-	var labels = make(map[string]interface{})
+	labels := make(map[string]interface{})
 	labels["helm.sh/chart"] = "chart"
 	nameSpace["labels"] = labels
 	exampleService["metadata"] = nameSpace

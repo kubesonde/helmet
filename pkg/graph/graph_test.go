@@ -14,32 +14,46 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package graph
 
 import (
 	"sort"
 	"testing"
 
+	"github.com/samber/lo"
 	"gotest.tools/v3/assert"
 	"helmet.io/pkg/helm"
 	"helmet.io/pkg/testutils"
 	"helmet.io/pkg/types"
+	"helmet.io/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func Test_serviceInConfigMap(t *testing.T) {
-
 	assert.Equal(t, serviceInConfigMap("somestrings then http://myservice:80", "myservice"), true)
 	assert.Equal(t, serviceInConfigMap("somestrings then http://myservice1:80", "myservice"), false)
 	assert.Equal(t, serviceInConfigMap("myservice then http://:80", "myservice"), false)
 	assert.Equal(t, serviceInConfigMap("this is myservice", "myservice"), false)
 	assert.Equal(t, serviceInConfigMap("this is myservice\n", "myservice"), true)
-
 }
 
 func Test_isServiceName(t *testing.T) {
-
 	assert.Equal(t, isServiceName("myservice", "myservice"), true)
 	assert.Equal(t, isServiceName("myservice.default.svc.cluster.local", "myservice"), true)
 	assert.Equal(t, isServiceName("myservice.flyte.svc.cluster.local", "myservice"), true)
@@ -76,24 +90,30 @@ func TestComputeEdgesToItself(t *testing.T) {
 
 	edges := ComputeEdgesToItself(manifestList, nodes)
 	sort.Sort(types.EdgesByName(edges))
+	p3306 := lo.Must1(utils.IntToInt32(3306))
+	p443 := lo.Must1(utils.IntToInt32(443))
+	p80 := lo.Must1(utils.IntToInt32(80))
 	assert.Equal(t, len(edges), 3)
-	assert.Equal(t, edges[0].Port, int32(3306))
+	assert.Equal(t, edges[0].Port, p3306)
 	assert.Equal(t, edges[0].Source.Name, "mychart-mariadb")
 	assert.Equal(t, edges[0].Destination.Name, "mychart-mariadb")
-	assert.Equal(t, edges[1].Port, int32(80))
+	assert.Equal(t, edges[1].Port, p80)
 	assert.Equal(t, edges[1].Source.Name, "mychart-wordpress")
 	assert.Equal(t, edges[1].Destination.Name, "mychart-wordpress")
-	assert.Equal(t, edges[2].Port, int32(443))
+	assert.Equal(t, edges[2].Port, p443)
 	assert.Equal(t, edges[2].Source.Name, "mychart-wordpress")
 	assert.Equal(t, edges[2].Destination.Name, "mychart-wordpress")
 }
+
 func TestComputeEdgesWithDependencyInformation(t *testing.T) {
 	manifestList := helm.GetManifestListFromString(testutils.WORDPRESS)
 	nodes := GetHelmetNodesWithDependencies(manifestList)
 	edges := ComputeEdgesWithDependencyInformation(manifestList, nodes)
 	sort.Sort(types.EdgesByName(edges))
 	assert.Equal(t, len(edges), 1)
-	assert.Equal(t, edges[0].Port, int32(3306))
+	p3306 := lo.Must1(utils.IntToInt32(3306))
+
+	assert.Equal(t, edges[0].Port, p3306)
 	assert.Equal(t, edges[0].Source.Name, "mychart-wordpress")
 	assert.Equal(t, edges[0].Destination.Name, "mychart-mariadb")
 }
@@ -102,15 +122,14 @@ func TestComputeEdgesWithEnvironmentVariables(t *testing.T) {
 	manifestList := helm.GetManifestListFromString(testutils.WORDPRESS)
 	nodes := GetHelmetNodesWithDependencies(manifestList)
 	edges := ComputeEdgesWithEnvironmentVariables(manifestList, nodes)
-
+	p3306 := lo.Must1(utils.IntToInt32(3306))
 	assert.Equal(t, len(edges), 1)
-	assert.Equal(t, edges[0].Port, int32(3306))
+	assert.Equal(t, edges[0].Port, p3306)
 	assert.Equal(t, edges[0].Source.Name, "mychart-wordpress")
 	assert.Equal(t, edges[0].Destination.Name, "mychart-mariadb")
 }
 
 func TestCommonAndDisjoint(t *testing.T) {
-
 	manifestList := helm.GetManifestListFromString(testutils.WORDPRESS)
 	nodes := GetHelmetNodesWithDependencies(manifestList)
 	edgesE := ComputeEdgesWithEnvironmentVariables(manifestList, nodes)
@@ -121,11 +140,9 @@ func TestCommonAndDisjoint(t *testing.T) {
 	assert.Equal(t, len(c), 1)
 	assert.Equal(t, len(de), 0)
 	assert.Equal(t, len(dd), 0)
-
 }
 
 func SkipTestEdgeToNetworkPolicyEgress(t *testing.T) {
-
 	manifestList := helm.GetManifestListFromString(testutils.WORDPRESS)
 	nodes := GetHelmetNodesWithDependencies(manifestList)
 	edges := ComputeEdgesWithDependencyInformation(manifestList, nodes)
@@ -143,11 +160,9 @@ func SkipTestEdgeToNetworkPolicyEgress(t *testing.T) {
 	eg := egress.Spec.Egress[0]
 	assert.Equal(t, len(eg.To), 1)
 	assert.DeepEqual(t, eg.To[0].PodSelector.MatchLabels, edges[0].Destination.ComputeUnit.Labels)
-
 }
 
 func TestEdgeToNetworkPolicyIngress(t *testing.T) {
-
 	manifestList := helm.GetManifestListFromString(testutils.WORDPRESS)
 	nodes := GetHelmetNodesWithDependencies(manifestList)
 	edges := ComputeEdgesWithDependencyInformation(manifestList, nodes)
@@ -166,11 +181,9 @@ func TestEdgeToNetworkPolicyIngress(t *testing.T) {
 	ig := ingress.Spec.Ingress[0]
 	assert.Equal(t, len(ig.From), 1)
 	assert.DeepEqual(t, ig.From[0].PodSelector.MatchLabels, edges[0].Source.ComputeUnit.Labels)
-
 }
 
 func TestEdgesToNetworkPolicy(t *testing.T) {
-
 	manifestList := helm.GetManifestListFromString(testutils.WORDPRESS)
 	nodes := GetHelmetNodesWithDependencies(manifestList)
 	edgesA := ComputeEdgesWithDependencyInformation(manifestList, nodes)
@@ -192,11 +205,9 @@ func TestEdgesToNetworkPolicy(t *testing.T) {
 
 	policies := EdgesToNetworkPolicy(edges)
 	assert.Equal(t, len(policies), 8)
-
 }
 
 func TestGetContainerPortMappingServicePort(t *testing.T) {
-
 	node := types.HelmET_Node{
 		ComputeUnit: types.HelmET_ComputeUnit{
 			ContainerPorts: []v1.ContainerPort{{

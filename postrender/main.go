@@ -14,6 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package main
 
 import (
@@ -46,9 +61,8 @@ var (
 )
 
 func emptyFolder(folder string) {
-
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
-		lo.Must0(os.MkdirAll(folder, 0755))
+		lo.Must0(os.MkdirAll(folder, 0o750))
 	}
 	fldRead := lo.Must1(os.Open(filepath.Clean(folder)))
 	files := lo.Must1(fldRead.Readdir(0))
@@ -64,12 +78,11 @@ func emptyFolder(folder string) {
 }
 
 func setupLogging() {
-	f := lo.Must1(os.OpenFile("log.log", os.O_WRONLY|os.O_CREATE, 0600))
+	f := lo.Must1(os.OpenFile("log.log", os.O_WRONLY|os.O_CREATE, 0o600))
 	logging.Log.SetOutput(f)
 }
 
 func runWithCustomConfig(hw types.Helmet, apiClient kubernetes.Interface, config_available string) {
-
 	log.Info(fmt.Sprintf("Reading configuration file %s", config_available))
 	content := lo.Must(boundaries.ReadHelmETConfigsFromYAML(config_available))
 	ancestors, _ := graph.GetAcenstorsDescendants(hw.Manifests)
@@ -108,7 +121,6 @@ func runWithDefaultConfig(hw types.Helmet) {
 		manifestYaml := make(helm.HelmManifest)
 		lo.Must0(yaml.Unmarshal([]byte(netpol_str), manifestYaml))
 		manifests[fmt.Sprintf("%s.yaml", netpol.Name)] = manifestYaml
-
 	}
 	_, descendants := graph.GetAcenstorsDescendants(hw.Manifests)
 	configs := boundaries.NetworkPoliciesToTemplate(netpols, descendants)
@@ -141,5 +153,4 @@ func main() {
 	} else {
 		runWithCustomConfig(hw, apiClient, config_available)
 	}
-
 }

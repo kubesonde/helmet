@@ -14,6 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package outbound
 
 import (
@@ -60,7 +75,6 @@ var (
 			return aux_cu.Name, aux_cu.Spec.Template.Labels, append(aux_cu.Spec.Template.Spec.Containers, aux_cu.Spec.Template.Spec.InitContainers...), aux_cu.Spec.Template.Spec.Volumes, aux_cu.Namespace, err
 		},
 		"StatefulSet": func(manifest helm.HelmManifest) (string, map[string]string, []v1.Container, []v1.Volume, string, error) {
-
 			var aux_pod apps.StatefulSet
 			aux_cu, err := loadObject[apps.StatefulSet](manifest, aux_pod)
 			return aux_cu.Name, aux_cu.Spec.Template.Labels, append(aux_cu.Spec.Template.Spec.Containers, aux_cu.Spec.Template.Spec.InitContainers...), aux_cu.Spec.Template.Spec.Volumes, aux_cu.Namespace, err
@@ -84,7 +98,6 @@ func AddLabelToDependencyServices(dependencies map[string]helm.HelmManifestList,
 	service_in_deps := map[string]int{}
 	new_service_manifest := make(map[string]helm.HelmManifestList)
 	for name, manifestList := range dependencies {
-
 		newManifestList, ok := AddLabelToServices(manifestList, labelKey, name)
 
 		if ok {
@@ -104,7 +117,6 @@ func AddLabelToDependencyServices(dependencies map[string]helm.HelmManifestList,
 }
 
 func DependencyRelation(manifestList helm.HelmManifestList) []string {
-
 	var result1 []string
 	for key, res := range manifestList {
 		value := helm.GetValueFromManifest(res, []string{"metadata", "labels", "app.kubernetes.io/part-of"})
@@ -118,7 +130,6 @@ func DependencyRelation(manifestList helm.HelmManifestList) []string {
 }
 
 func AddLabelToServices(manifestList helm.HelmManifestList, labelKey string, labelValue string) (helm.HelmManifestList, bool) {
-
 	serviceLabel := []string{"metadata", "labels"}
 	found := false
 	updatedManifests := make(helm.HelmManifestList)
@@ -208,7 +219,6 @@ func getContainersFromDeployment(manifest helm.HelmManifest) []v1.Container {
 }
 
 func GetComputeUnitsNames(manifestList helm.HelmManifestList) []string {
-
 	PODS_CONTAINER := map[string]interface{}{
 		"Pod": func(manifest helm.HelmManifest) string {
 			var aux_pod v1.Pod
@@ -254,7 +264,6 @@ func GetComputeUnitsNames(manifestList helm.HelmManifestList) []string {
 }
 
 func GetComputeUnitsLabels(manifestList helm.HelmManifestList) map[string]map[string]string {
-
 	PODS_CONTAINER := map[string]interface{}{
 		"Pod": func(manifest helm.HelmManifest) (string, map[string]string) {
 			var aux_pod v1.Pod
@@ -277,7 +286,6 @@ func GetComputeUnitsLabels(manifestList helm.HelmManifestList) map[string]map[st
 			return aux_cu.Name, aux_cu.Spec.Template.Labels
 		},
 		"StatefulSet": func(manifest helm.HelmManifest) (string, map[string]string) {
-
 			var aux_pod apps.StatefulSet
 			aux_cu := lo.Must1(loadObject[apps.StatefulSet](manifest, aux_pod))
 			return aux_cu.Name, aux_cu.Spec.Template.Labels
@@ -318,18 +326,21 @@ func mergeEnvVariables(containers []v1.Container) []v1.EnvVar {
 	})
 	return lo.Flatten(envVars)
 }
+
 func mergeContainerArguments(containers []v1.Container) []string {
 	args := lo.Map(containers, func(container v1.Container, idx int) []string {
 		return container.Args
 	})
 	return lo.Flatten(args)
 }
+
 func mergeContainerCommands(containers []v1.Container) []string {
 	args := lo.Map(containers, func(container v1.Container, idx int) []string {
 		return container.Command
 	})
 	return lo.Flatten(args)
 }
+
 func getConfigMaps(volumes []v1.Volume) []string {
 	args := lo.FilterMap(volumes, func(volume v1.Volume, idx int) (string, bool) {
 		configMap := volume.ConfigMap
@@ -341,19 +352,18 @@ func getConfigMaps(volumes []v1.Volume) []string {
 	})
 	return args
 }
-func GetComputeUnitsDetails(manifestList helm.HelmManifestList) []types.HelmET_ComputeUnit {
 
+func GetComputeUnitsDetails(manifestList helm.HelmManifestList) []types.HelmET_ComputeUnit {
 	computeUnits := []types.HelmET_ComputeUnit{}
 	var object []helm.HelmManifest
 
-	configMaps :=
-		lo.Reduce(GetObjects(manifestList, "ConfigMap"), func(acc map[string]string, manifest helm.HelmManifest, idx int) map[string]string {
-			var cm v1.ConfigMap
+	configMaps := lo.Reduce(GetObjects(manifestList, "ConfigMap"), func(acc map[string]string, manifest helm.HelmManifest, idx int) map[string]string {
+		var cm v1.ConfigMap
 
-			configMap := lo.Must1(loadObject(manifest, cm))
-			acc[configMap.Name] = strings.Join(lo.Values(configMap.Data), "\n")
-			return acc
-		}, map[string]string{})
+		configMap := lo.Must1(loadObject(manifest, cm))
+		acc[configMap.Name] = strings.Join(lo.Values(configMap.Data), "\n")
+		return acc
+	}, map[string]string{})
 
 	for label, function := range _COMPUTE_UNITS_DETAILS {
 		object = GetObjects(manifestList, label)
@@ -361,7 +371,6 @@ func GetComputeUnitsDetails(manifestList helm.HelmManifestList) []types.HelmET_C
 			for _, manifest := range object {
 				cu_name, cu_labels, cu_containers, cu_volumes, cu_namespace, err := function.(func(helm.HelmManifest) (string, map[string]string, []v1.Container, []v1.Volume, string, error))(manifest)
 				if err != nil {
-
 					continue
 				}
 				configMapNames := getConfigMaps(cu_volumes)
@@ -391,7 +400,7 @@ func GetHelmetServices(manifestList helm.HelmManifestList) []types.HelmET_Servic
 	helmetServices := []types.HelmET_Service{}
 	for _, service := range svcs {
 		var svc v1.Service
-		svc_bytes, _ := json.Marshal(service)
+		svc_bytes := lo.Must1(json.Marshal(service))
 		headless := false
 		if svc.Spec.ClusterIP == v1.ClusterIPNone {
 			headless = true
@@ -422,10 +431,8 @@ func GetHelmetNodes(manifestList helm.HelmManifestList) []types.HelmET_Node {
 			if lo.EveryBy(lo.Entries(service.Selector), func(entry lo.Entry[string, string]) bool {
 				return computeUnit.Labels[entry.Key] == entry.Value
 			}) {
-
 				node.Services = append(node.Services, service)
 			}
-
 		}
 		nodes = append(nodes, node)
 	}
@@ -434,10 +441,9 @@ func GetHelmetNodes(manifestList helm.HelmManifestList) []types.HelmET_Node {
 
 func GetHelmetNodesWithDependencies(manifestList helm.HelmManifestList) []types.HelmET_Node {
 	nodes := []types.HelmET_Node{}
-	var groupedManifests = helm.GroupManifestsByDependency(manifestList)
+	groupedManifests := helm.GroupManifestsByDependency(manifestList)
 
 	for dependency, manifests := range groupedManifests {
-
 		helmetServices := GetHelmetServices(manifests)
 		computeUnits := GetComputeUnitsDetails(manifests)
 		for _, computeUnit := range computeUnits {
@@ -451,10 +457,8 @@ func GetHelmetNodesWithDependencies(manifestList helm.HelmManifestList) []types.
 				if lo.EveryBy(lo.Entries(service.Selector), func(entry lo.Entry[string, string]) bool {
 					return computeUnit.Labels[entry.Key] == entry.Value
 				}) {
-
 					node.Services = append(node.Services, service)
 				}
-
 			}
 			nodes = append(nodes, node)
 		}
@@ -463,7 +467,6 @@ func GetHelmetNodesWithDependencies(manifestList helm.HelmManifestList) []types.
 }
 
 func GetContainers(manifestList helm.HelmManifestList) []v1.Container {
-
 	PODS_CONTAINER := map[string]interface{}{
 		"Pod":         getContainersFromPod,
 		"Job":         getContainersFromJob,
@@ -511,7 +514,6 @@ func getContainerPorts(manifestList helm.HelmManifestList) []v1.ContainerPort {
 	containerPorts := []v1.ContainerPort{}
 
 	for _, container := range GetContainers(manifestList) {
-
 		containerPorts = append(containerPorts, container.Ports...)
 	}
 	return containerPorts
@@ -582,7 +584,6 @@ func ConvertServicePortsToIngressNetworkPolicyPortForDebug(servicePorts []v1.Ser
 					Protocol: &protocol,
 				})
 			}
-
 		}
 		return endpoints
 	}))
@@ -598,7 +599,6 @@ func ConvertServicePortsToIngressNetworkPolicyPort(servicePorts []v1.ServicePort
 				port = intstr.FromInt(int(item.Port))
 			}
 		} else {
-
 			port = item.TargetPort
 		}
 		var protocols []v1.Protocol
@@ -630,7 +630,6 @@ func ConvertServicePortsToIngressNetworkPolicyPort(servicePorts []v1.ServicePort
 }
 
 func ConvertServicePortsToNetworkPolicyPort(servicePorts []v1.ServicePort) []netv1.NetworkPolicyPort {
-
 	return lo.Uniq(lo.FlatMap(servicePorts, func(item v1.ServicePort, index int) []netv1.NetworkPolicyPort {
 		port := intstr.FromInt(int(item.Port))
 		var protocols []v1.Protocol
