@@ -400,7 +400,7 @@ func GetHelmetServices(manifestList helm.HelmManifestList) []types.HelmET_Servic
 	helmetServices := []types.HelmET_Service{}
 	for _, service := range svcs {
 		var svc v1.Service
-		svc_bytes, _ := json.Marshal(service)
+		svc_bytes := lo.Must1(json.Marshal(service))
 		headless := false
 		if svc.Spec.ClusterIP == v1.ClusterIPNone {
 			headless = true

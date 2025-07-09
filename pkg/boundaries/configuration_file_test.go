@@ -444,8 +444,9 @@ func TestGeneratedConfig(t *testing.T) {
 
 	depTree := map[string][]string{"wordpress": {"wordpress_mariadb"}}
 	template := NetworkPoliciesToTemplate(netpols_obj, depTree)
-	var cfg []HelmETConfig
+
 	single_config := strings.Split(generatedConfig, "\n---\n")
+	cfg := make([]HelmETConfig, 0, len(single_config))
 	for _, configuration := range single_config {
 		var helmetConfig HelmETConfig
 

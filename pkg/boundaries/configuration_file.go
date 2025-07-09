@@ -448,10 +448,8 @@ func WriteHelmETConfigsToYAML(configs []HelmETConfig, filePath string) error {
 }
 
 func ReadHelmETConfigsFromYAML(filePath string) ([]HelmETConfig, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
+	data := lo.Must1(os.ReadFile(filePath)) // #nosec G304 FIXME: handle path
+
 	var configs []HelmETConfig
 	if err := yaml.Unmarshal(data, &configs); err != nil {
 		return nil, err

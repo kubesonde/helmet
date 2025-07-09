@@ -373,6 +373,8 @@ func ComputeServicePortForGivenService(service helm.HelmManifest, compute_units 
 			defaultProto = service_port.Protocol
 		case corev1.ProtocolSCTP:
 			defaultProto = service_port.Protocol
+		case corev1.ProtocolTCP:
+			defaultProto = corev1.ProtocolTCP
 		default:
 			defaultProto = corev1.ProtocolTCP
 		}
@@ -444,10 +446,10 @@ func ComputePortInformation(groupedManifests map[string]helm.HelmManifestList) {
 				}
 			}
 			container_ports := outbound.ManifestToComputeUnitPortsDebug(applicable_units)
-			json_ports_compute, _ := json.Marshal(container_ports)
+			json_ports_compute := lo.Must1(json.Marshal(container_ports))
 			svcManifests := helm.HelmManifestList{}
 			svcManifests["test"] = service
-			json_ports_svc, _ := json.Marshal(outbound.ManifestToIngressNetPolPortDebug(svcManifests))
+			json_ports_svc := lo.Must1(json.Marshal(outbound.ManifestToIngressNetPolPortDebug(svcManifests)))
 
 			var servicename interface{}
 			v, ok := service["metadata"].(helm.HelmManifest)
