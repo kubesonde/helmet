@@ -19,9 +19,10 @@ package errors
 import (
 	"testing"
 
+	"github.com/samber/lo"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/samber/lo"
 )
 
 func TestErrors(t *testing.T) {
@@ -30,10 +31,8 @@ func TestErrors(t *testing.T) {
 }
 
 var _ = Describe("String to error", func() {
-
 	It("Returns default message for unknown error", func() {
 		Expect(StringToError("does not exist")).To(Equal(Unknown))
-
 	})
 	It("Recognizes correct messages", func() {
 		errorStrings := []string{
@@ -57,7 +56,5 @@ var _ = Describe("String to error", func() {
 		lo.ForEach(errorStrings, func(err string, index int) {
 			Expect(StringToError(err)).To(Equal(expectedErrors[index]))
 		})
-
 	})
-
 })

@@ -21,11 +21,9 @@ import (
 	yaml "sigs.k8s.io/yaml"
 )
 
-var (
-	log = logf.WithFields(logf.Fields{
-		"package": "main-script",
-	})
-)
+var log = logf.WithFields(logf.Fields{
+	"package": "main-script",
+})
 
 func init() {
 	logf.SetFormatter(&logf.TextFormatter{
@@ -112,14 +110,13 @@ func runWithDefaultConfig(hw types.Helmet, output_dir string) {
 }
 
 func main() {
-
 	output_dir := "yaml"
 
-	var chartName = flag.String("chartName", "bitnami/wordpress", "the chart name to run the tool with")
+	chartName := flag.String("chartName", "bitnami/wordpress", "the chart name to run the tool with")
 
-	var releaseName = flag.String("release", "wordpress", "the name of the release")
+	releaseName := flag.String("release", "wordpress", "the name of the release")
 
-	var forceLoad = flag.Bool("forceLoad", true, "Force chart load, omitting ./yaml")
+	forceLoad := flag.Bool("forceLoad", true, "Force chart load, omitting ./yaml")
 
 	flag.Parse()
 	dependencyLabelKey := "helmet.io/chart"

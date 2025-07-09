@@ -27,15 +27,13 @@ import (
 	"helmet.io/pkg/helm"
 )
 
-var (
-	output_dir = "output_dir"
-	//log                = logging.LOGGER.WithFields(logrus.Fields{
-	//	"source": "postrender",
-	//})
-)
+var output_dir = "output_dir"
+
+// log                = logging.LOGGER.WithFields(logrus.Fields{
+//	"source": "postrender",
+// }).
 
 func emptyFolder(folder string) {
-
 	fldRead := lo.Must1(os.Open(filepath.Clean(folder)))
 	files := lo.Must1(fldRead.Readdir(0))
 
@@ -50,7 +48,6 @@ func emptyFolder(folder string) {
 }
 
 func processChart(inputFile *string, verbose bool) {
-
 	if verbose {
 		fmt.Printf("Analyzing %s\n", *inputFile)
 	}
@@ -58,11 +55,9 @@ func processChart(inputFile *string, verbose bool) {
 	data := lo.Must1(os.ReadFile(*inputFile))
 	manifestList := helm.GetManifestListFromString(string(data))
 	graph.ProcessChart(manifestList)
-
 }
 
 func main() {
-
 	emptyFolder(output_dir)
 
 	inputFile := flag.String("input", "./input.txt", "Path to the input file")
@@ -76,8 +71,6 @@ func main() {
 			path := fmt.Sprintf("%s%s", *folder, e.Name())
 
 			processChart(&path, false)
-
 		}
 	}
-
 }

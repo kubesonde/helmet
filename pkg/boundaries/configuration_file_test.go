@@ -37,7 +37,6 @@ func mockClient() kubernetes.Interface {
 
 	lo.Must(client.CoreV1().Endpoints("default").Create(context.TODO(), endpoint, metav1.CreateOptions{}))
 	return client
-
 }
 
 var netpols = `apiVersion: networking.k8s.io/v1
@@ -147,7 +146,6 @@ spec:
 `
 
 func TestNetpolToTemplate(t *testing.T) {
-
 	network_configurations := strings.Split(string(netpols), "\n---\n")
 	netpols_obj := []netv1.NetworkPolicy{}
 	for _, configuration := range network_configurations {
@@ -156,10 +154,10 @@ func TestNetpolToTemplate(t *testing.T) {
 		lo.Must0(yaml.Unmarshal([]byte(configuration), &netpol_obj))
 		netpols_obj = append(netpols_obj, netpol_obj)
 	}
-	depTree := map[string][]string{"wordpress": []string{"wordpress_mariadb"}}
+	depTree := map[string][]string{"wordpress": {"wordpress_mariadb"}}
 
 	template := NetworkPoliciesToTemplate(netpols_obj, depTree)
-	assert.Equal(t, len(template), 2)
+	assert.Len(t, template, 2)
 	expPort := intstr.FromInt(3306)
 	httpPort := intstr.FromInt(80)
 	httpAltPort := intstr.FromInt(8080)
@@ -167,33 +165,35 @@ func TestNetpolToTemplate(t *testing.T) {
 	httpsAltPort := intstr.FromInt(8443)
 	proto := v1.ProtocolTCP
 	mariadb := template[1]
-	assert.Equal(t, mariadb.Name, "wordpress--mariadb-policy")
-	assert.Equal(t, mariadb.ComponentSelector, map[string]string{"helmet.io/chart": "wordpress_mariadb"})
+	assert.Equal(t, "wordpress--mariadb-policy", mariadb.Name)
+	assert.Equal(t, map[string]string{"helmet.io/chart": "wordpress_mariadb"}, mariadb.ComponentSelector)
 
-	assert.Equal(t, mariadb.Ingress, NetworkInterface{Allow: Allow{
+	assert.Equal(t, NetworkInterface{Allow: Allow{
 		Resources: []Resource{
-			{Ports: []netv1.NetworkPolicyPort{netv1.NetworkPolicyPort{Port: &expPort, Protocol: &proto}}},
+			{Ports: []netv1.NetworkPolicyPort{{Port: &expPort, Protocol: &proto}}},
 		},
-	}})
-	assert.Equal(t, mariadb.Egress, NetworkInterface{Allow: Allow{Components: []string{"dns"}}, Deny: Deny{Components: []string{"private_subnets"}}})
+	}}, mariadb.Ingress)
+	assert.Equal(t, NetworkInterface{Allow: Allow{Components: []string{"dns"}}, Deny: Deny{Components: []string{"private_subnets"}}}, mariadb.Egress)
 
 	wordpress := template[0]
-	assert.Equal(t, wordpress.Name, "wordpress-policy")
-	assert.Equal(t, wordpress.ComponentSelector, map[string]string{"helmet.io/chart": "wordpress"})
+	assert.Equal(t, "wordpress-policy", wordpress.Name)
+	assert.Equal(t, map[string]string{"helmet.io/chart": "wordpress"}, wordpress.ComponentSelector)
 
-	assert.Equal(t, wordpress.Ingress, NetworkInterface{Allow: Allow{
+	assert.Equal(t, NetworkInterface{Allow: Allow{
 		Resources: []Resource{
-			{Ports: []netv1.NetworkPolicyPort{netv1.NetworkPolicyPort{Port: &httpPort, Protocol: &proto}, netv1.NetworkPolicyPort{Port: &httpAltPort, Protocol: &proto}, netv1.NetworkPolicyPort{Port: &httpsPort, Protocol: &proto}, netv1.NetworkPolicyPort{Port: &httpsAltPort, Protocol: &proto}}},
+			{Ports: []netv1.NetworkPolicyPort{{Port: &httpPort, Protocol: &proto}, {Port: &httpAltPort, Protocol: &proto}, {Port: &httpsPort, Protocol: &proto}, {Port: &httpsAltPort, Protocol: &proto}}},
 		},
-	}})
+	}}, wordpress.Ingress)
 
-	assert.Equal(t, wordpress.Egress, NetworkInterface{Allow: Allow{Components: []string{"dns"}}, Deny: Deny{Components: []string{"private_subnets"}}})
+	assert.Equal(t, NetworkInterface{Allow: Allow{Components: []string{"dns"}}, Deny: Deny{Components: []string{"private_subnets"}}}, wordpress.Egress)
 
-	assert.Equal(t, wordpress.Interactions, []Interaction{{From: map[string]string{"helmet.io/chart": "wordpress"},
+	assert.Equal(t, []Interaction{{
+		From: map[string]string{"helmet.io/chart": "wordpress"},
 
 		To: map[string]string{
 			"helmet.io/chart": "wordpress_mariadb",
-		}}})
+		},
+	}}, wordpress.Interactions)
 
 	assert.Nil(t, mariadb.Interactions)
 }
@@ -305,7 +305,6 @@ spec:
 `
 
 func SkipTestTemplateToNetpol(t *testing.T) {
-
 	network_configurations := strings.Split(string(netpols), "\n---\n")
 	netpols_obj := []netv1.NetworkPolicy{}
 	for _, configuration := range network_configurations {
@@ -314,23 +313,23 @@ func SkipTestTemplateToNetpol(t *testing.T) {
 		lo.Must0(yaml.Unmarshal([]byte(configuration), &netpol_obj))
 		netpols_obj = append(netpols_obj, netpol_obj)
 	}
-	depTree := map[string][]string{"wordpress": []string{"wordpress_mariadb"}}
-	ancestors := map[string][]string{"wordpress_mariadb": []string{"wordpress"}}
+	depTree := map[string][]string{"wordpress": {"wordpress_mariadb"}}
+	ancestors := map[string][]string{"wordpress_mariadb": {"wordpress"}}
 
 	template := NetworkPoliciesToTemplate(netpols_obj, depTree)
 	policies := TemplatesToNetpol(template, mockClient(), ancestors)
 
-	assert.Equal(t, len(policies), 2)
-	assert.Equal(t, policies[1].Name, "wordpress--mariadb-policy")
+	assert.Len(t, policies, 2)
+	assert.Equal(t, "wordpress--mariadb-policy", policies[1].Name)
 	assert.Equal(t, helm.SortEgressPolicies(netpols_obj[1].Spec.Egress), helm.SortEgressPolicies(policies[1].Spec.Egress))
 	assert.Equal(t, helm.SortIngressPolicies(netpols_obj[1].Spec.Ingress), helm.SortIngressPolicies(policies[1].Spec.Ingress))
 
-	assert.Equal(t, policies[0].Name, "wordpress-policy")
+	assert.Equal(t, "wordpress-policy", policies[0].Name)
 	assert.Equal(t, helm.SortEgressPolicies(netpols_obj[0].Spec.Egress), helm.SortEgressPolicies(policies[0].Spec.Egress))
 	assert.ElementsMatch(t, netpols_obj[0].Spec.Ingress, policies[0].Spec.Ingress)
 }
-func SkipTestTemplateToNetpolReversed(t *testing.T) {
 
+func SkipTestTemplateToNetpolReversed(t *testing.T) {
 	network_configurations := strings.Split(string(netpols_reversed), "\n---\n")
 	netpols_obj := []netv1.NetworkPolicy{}
 	for _, configuration := range network_configurations {
@@ -339,17 +338,17 @@ func SkipTestTemplateToNetpolReversed(t *testing.T) {
 		lo.Must0(yaml.Unmarshal([]byte(configuration), &netpol_obj))
 		netpols_obj = append(netpols_obj, netpol_obj)
 	}
-	depTree := map[string][]string{"wordpress": []string{"wordpress_mariadb"}}
-	ancestors := map[string][]string{"wordpress_mariadb": []string{"wordpress"}}
+	depTree := map[string][]string{"wordpress": {"wordpress_mariadb"}}
+	ancestors := map[string][]string{"wordpress_mariadb": {"wordpress"}}
 
 	template := NetworkPoliciesToTemplate(netpols_obj, depTree)
 	policies := TemplatesToNetpol(template, mockClient(), ancestors)
 
-	assert.Equal(t, len(policies), 2)
-	assert.Equal(t, policies[1].Name, "wordpress-policy")
+	assert.Len(t, policies, 2)
+	assert.Equal(t, "wordpress-policy", policies[1].Name)
 	assert.Equal(t, helm.SortEgressPolicies(netpols_obj[1].Spec.Egress), helm.SortEgressPolicies(policies[1].Spec.Egress))
 	assert.ElementsMatch(t, netpols_obj[1].Spec.Ingress, policies[1].Spec.Ingress)
-	assert.Equal(t, policies[0].Name, "wordpress--mariadb-policy")
+	assert.Equal(t, "wordpress--mariadb-policy", policies[0].Name)
 	assert.Equal(t, helm.SortEgressPolicies(netpols_obj[0].Spec.Egress), helm.SortEgressPolicies(policies[0].Spec.Egress))
 	assert.Equal(t, helm.SortIngressPolicies(netpols_obj[0].Spec.Ingress), helm.SortIngressPolicies(policies[0].Spec.Ingress))
 }
@@ -419,7 +418,6 @@ Name: wordpress-policy
 ---`
 
 func TestGeneratedConfig(t *testing.T) {
-
 	network_configurations := strings.Split(string(netpols), "\n---\n")
 	netpols_obj := []netv1.NetworkPolicy{}
 	for _, configuration := range network_configurations {
@@ -429,7 +427,7 @@ func TestGeneratedConfig(t *testing.T) {
 		netpols_obj = append(netpols_obj, netpol_obj)
 	}
 
-	depTree := map[string][]string{"wordpress": []string{"wordpress_mariadb"}}
+	depTree := map[string][]string{"wordpress": {"wordpress_mariadb"}}
 	template := NetworkPoliciesToTemplate(netpols_obj, depTree)
 	var cfg []HelmETConfig
 	single_config := strings.Split(string(generatedConfig), "\n---\n")
@@ -443,7 +441,6 @@ func TestGeneratedConfig(t *testing.T) {
 	assert.Equal(t, template[0].Name, cfg[1].Name)
 	assert.Equal(t, template[0].Interactions[0].From, cfg[1].Interactions[0].From)
 	assert.Equal(t, template[0].Interactions[0].To, cfg[1].Interactions[0].To)
-
 }
 
 var customConfig = `
@@ -515,12 +512,10 @@ Name: wordpress-policy
 ---`
 
 func TestGeneratedCustomConfig(t *testing.T) {
-
 	template := []HelmETConfig{}
-	ancestors := map[string][]string{"wordpress_mariadb": []string{"wordpress"}}
+	ancestors := map[string][]string{"wordpress_mariadb": {"wordpress"}}
 	network_configurations := strings.Split(string(customConfig), "\n---\n")
 	for _, configuration := range network_configurations {
-
 		var custom_config HelmETConfig
 		lo.Must0(yaml.Unmarshal([]byte(configuration), &custom_config))
 		template = append(template, custom_config)
@@ -529,8 +524,7 @@ func TestGeneratedCustomConfig(t *testing.T) {
 	for _, policy := range generated_policies {
 		if policy.Name == "wordpress" {
 			log.Print(string(lo.Must(yaml.Marshal(policy))))
-			assert.Equal(t, 2, len(policy.Spec.Ingress))
+			assert.Len(t, policy.Spec.Ingress, 2)
 		}
 	}
-
 }

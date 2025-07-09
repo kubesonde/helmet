@@ -28,9 +28,7 @@ var (
 )
 
 func init() {
-
 	Log.SetFormatter(&logrus.JSONFormatter{
-
 		TimestampFormat: time.RFC3339Nano,
 
 		FieldMap: logrus.FieldMap{

@@ -16,8 +16,7 @@ limitations under the License.
 
 package testutils
 
-var (
-	WORDPRESS = `---
+var WORDPRESS = `---
 # Source: wordpress/charts/mariadb/templates/networkpolicy.yaml
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
@@ -761,4 +760,3 @@ spec:
         resources:
           requests:
             storage: "8Gi"`
-)

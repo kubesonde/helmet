@@ -20,14 +20,15 @@ import (
 	"sort"
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"helmet.io/pkg/helm"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 func TestOutbound(t *testing.T) {
@@ -35,40 +36,40 @@ func TestOutbound(t *testing.T) {
 	RunSpecs(t, "Outbound suite")
 }
 
-var (
-	manifestList = helm.HelmManifestList{
-		"mychart/templates/abc.yaml": {"kind": "foo"},
-		"mychart/templates/svc.yaml": {"kind": "Service",
-			"metadata": helm.HelmManifest{"labels": helm.HelmManifest{"label/key": "value"}, "name": "test-service"},
-			"spec": helm.HelmManifest{
-				"selector": helm.HelmManifest{"label/key": "value"},
-				"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 80, "targetPort": 8080}}}},
-		"mychart/templates/svc2.yaml": {"kind": "Service",
-			"metadata": helm.HelmManifest{"labels": helm.HelmManifest{"label/svc": "template", "name": "test-service2"}},
-			"spec": helm.HelmManifest{
-				"selector": helm.HelmManifest{"label/svc": "template"},
-				"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 90, "targetPort": 8443}, {"protocol": "TCP", "port": 91, "targetPort": 8443}}}},
-	}
-)
+var manifestList = helm.HelmManifestList{
+	"mychart/templates/abc.yaml": {"kind": "foo"},
+	"mychart/templates/svc.yaml": {
+		"kind":     "Service",
+		"metadata": helm.HelmManifest{"labels": helm.HelmManifest{"label/key": "value"}, "name": "test-service"},
+		"spec": helm.HelmManifest{
+			"selector": helm.HelmManifest{"label/key": "value"},
+			"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 80, "targetPort": 8080}},
+		},
+	},
+	"mychart/templates/svc2.yaml": {
+		"kind":     "Service",
+		"metadata": helm.HelmManifest{"labels": helm.HelmManifest{"label/svc": "template", "name": "test-service2"}},
+		"spec": helm.HelmManifest{
+			"selector": helm.HelmManifest{"label/svc": "template"},
+			"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 90, "targetPort": 8443}, {"protocol": "TCP", "port": 91, "targetPort": 8443}},
+		},
+	},
+}
 
 var _ = Describe("AddLabelToServices", func() {
-
 	It("Adds a Label to the service if it is not present", func() {
-
 		newManifesList, _ := AddLabelToServices(manifestList, "label/svc", "template")
 
-		Expect(len(lo.Keys(newManifesList["mychart/templates/abc.yaml"]))).To(Equal(1))
+		Expect(lo.Keys(newManifesList["mychart/templates/abc.yaml"])).To(HaveLen(1))
 		Expect(newManifesList["mychart/templates/abc.yaml"]).To(Equal(helm.HelmManifest{"kind": "foo"}))
 
-		Expect(len(lo.Keys(newManifesList["mychart/templates/svc.yaml"]["metadata"].(helm.HelmManifest)["labels"].(helm.HelmManifest)))).To(Equal(2))
+		Expect(lo.Keys(newManifesList["mychart/templates/svc.yaml"]["metadata"].(helm.HelmManifest)["labels"].(helm.HelmManifest))).To(HaveLen(2))
 		Expect(newManifesList["mychart/templates/svc.yaml"]["metadata"].(helm.HelmManifest)["labels"].(helm.HelmManifest)["label/svc"]).To(Equal("template"))
 
-		Expect(len(lo.Keys(newManifesList["mychart/templates/svc2.yaml"]["metadata"].(helm.HelmManifest)["labels"].(helm.HelmManifest)))).To(Equal(2))
+		Expect(lo.Keys(newManifesList["mychart/templates/svc2.yaml"]["metadata"].(helm.HelmManifest)["labels"].(helm.HelmManifest))).To(HaveLen(2))
 		Expect(newManifesList["mychart/templates/svc.yaml"]["metadata"].(helm.HelmManifest)["labels"].(helm.HelmManifest)["label/svc"]).To(Equal("template"))
-
 	})
 	It("Returns the same chart if no services are available", func() {
-
 		manifest := helm.HelmManifestList{
 			"mychart/templates/abc.yaml":  {"kind": "foo"},
 			"mychart/templates/abcd.yaml": {"kind": "Secret"},
@@ -77,7 +78,6 @@ var _ = Describe("AddLabelToServices", func() {
 		newManifesList, _ := AddLabelToServices(manifest, "label/svc", "template")
 
 		Expect(manifest).To(Equal(newManifesList))
-
 	})
 })
 
@@ -94,9 +94,7 @@ func Test_DependencyRelation(t *testing.T) {
 }
 
 var _ = Describe("DependencyRelation", func() {
-
 	It("DependencyRelation", func() {
-
 		manifestList := helm.HelmManifestList{
 			"mychart/templates/svc.yaml":  {"kind": "Service", "metadata": helm.HelmManifest{"labels": helm.HelmManifest{"app.kubernetes.io/part-of": "value"}}},
 			"mychart/templates/svc2.yaml": {"kind": "Service", "metadata": helm.HelmManifest{"labels": helm.HelmManifest{"app.kubernetes.io/part-of": "template"}}},
@@ -110,73 +108,85 @@ var _ = Describe("DependencyRelation", func() {
 })
 
 var _ = Describe("AddLabelToDependencyServices", func() {
-
 	It("Adds labels when services are available", func() {
 		groupedManifests := map[string]helm.HelmManifestList{
 			"dep1": {
 				"mychart/templates/abc.yaml": {"kind": "foo"},
-				"mychart/templates/svc.yaml": {"kind": "Service",
+				"mychart/templates/svc.yaml": {
+					"kind":     "Service",
 					"metadata": helm.HelmManifest{"labels": helm.HelmManifest{"label/key": "value"}, "name": "test-service"},
 					"spec": helm.HelmManifest{
 						"selector": helm.HelmManifest{"label/key": "value"},
-						"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 80, "targetPort": 8080}}}},
-			}}
+						"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 80, "targetPort": 8080}},
+					},
+				},
+			},
+		}
 		expectedGroupedManifests := map[string]helm.HelmManifestList{
 			"dep1": {
 				"mychart/templates/abc.yaml": {"kind": "foo"},
-				"mychart/templates/svc.yaml": {"kind": "Service",
+				"mychart/templates/svc.yaml": {
+					"kind":     "Service",
 					"metadata": helm.HelmManifest{"labels": helm.HelmManifest{"label/key": "value", "foo": "dep1"}, "name": "test-service"},
 					"spec": helm.HelmManifest{
 						"selector": helm.HelmManifest{"label/key": "value"},
-						"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 80, "targetPort": 8080}}}},
-			}}
+						"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 80, "targetPort": 8080}},
+					},
+				},
+			},
+		}
 		result := AddLabelToDependencyServices(groupedManifests, "foo")
-		Expect(len(lo.Keys(result))).To(Equal(1))
+		Expect(lo.Keys(result)).To(HaveLen(1))
 		Expect(result["dep1"]).To(Equal(1))
 		Expect(groupedManifests).To(Equal(expectedGroupedManifests))
 	})
 	It("Does nothing when there are no services", func() {
 		groupedManifests := map[string]helm.HelmManifestList{
 			"dep1": {
-				"mychart/templates/abc.yaml": {"kind": "foo"}}}
+				"mychart/templates/abc.yaml": {"kind": "foo"},
+			},
+		}
 
 		expectedGroupedManifests := map[string]helm.HelmManifestList{
 			"dep1": {
-				"mychart/templates/abc.yaml": {"kind": "foo"}}}
+				"mychart/templates/abc.yaml": {"kind": "foo"},
+			},
+		}
 
 		result := AddLabelToDependencyServices(groupedManifests, "foo")
-		Expect(len(lo.Keys(result))).To(Equal(1))
+		Expect(lo.Keys(result)).To(HaveLen(1))
 		Expect(result["mychart"]).To(Equal(0))
 		Expect(groupedManifests).To(Equal(expectedGroupedManifests))
 	})
 })
 
 func Test_AddLabelToServices(t *testing.T) {
-	expectedManifest := helm.HelmManifest{"kind": "Service",
+	expectedManifest := helm.HelmManifest{
+		"kind":     "Service",
 		"metadata": helm.HelmManifest{"labels": helm.HelmManifest{"label/key": "value", "helmet.io/chart": "mychart", "label/svc": "template"}, "name": "test-service"},
 		"spec": helm.HelmManifest{
 			"selector": helm.HelmManifest{"label/key": "value"},
-			"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 80, "targetPort": 8080}}}}
+			"ports":    []helm.HelmManifest{{"protocol": "TCP", "port": 80, "targetPort": 8080}},
+		},
+	}
 
 	newManifestList, _ := AddLabelToServices(manifestList, "helmet.io/chart", "mychart")
-	assert.Equal(t, newManifestList["mychart/templates/svc.yaml"], expectedManifest)
+	assert.Equal(t, expectedManifest, newManifestList["mychart/templates/svc.yaml"])
 }
 
 func Test_GetServices(t *testing.T) {
-
-	assert.Equal(t, len(GetServices(manifestList)), 2, "Real length = %d", len(GetServices(manifestList)))
+	assert.Len(t, GetServices(manifestList), 2, "Real length = %d", len(GetServices(manifestList)))
 }
 
 var _ = Describe("getServicesPorts", func() {
 	It("works", func() {
 		ports, err := getServicesPorts(manifestList)
-		Expect(err).To(BeNil())
-		Expect(len(ports)).To(Equal(3))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ports).To(HaveLen(3))
 	})
 })
 
 func TestConvertServicePortsToNetworkPolicyPort(t *testing.T) {
-
 	servicePorts := []v1.ServicePort{
 		{
 			Protocol: v1.ProtocolTCP,
@@ -204,7 +214,6 @@ func TestConvertServicePortsToNetworkPolicyPort(t *testing.T) {
 }
 
 func TestConvertServicePortsToNetworkPolicyPortWhenNoProtocol(t *testing.T) {
-
 	servicePorts := []v1.ServicePort{
 		{
 			Port: 8080,
@@ -213,7 +222,6 @@ func TestConvertServicePortsToNetworkPolicyPortWhenNoProtocol(t *testing.T) {
 	port := intstr.FromInt(8080)
 	tcp := v1.ProtocolTCP
 	expectedNetPolPorts := []netv1.NetworkPolicyPort{
-
 		{
 			Port:     &port,
 			Protocol: &tcp,
@@ -223,7 +231,6 @@ func TestConvertServicePortsToNetworkPolicyPortWhenNoProtocol(t *testing.T) {
 }
 
 func TestConvertServicePortsToIngressNetworkPolicyPortForDebug(t *testing.T) {
-
 	servicePorts := []v1.ServicePort{
 		{
 			Port: 8080,
@@ -246,7 +253,6 @@ func TestConvertServicePortsToIngressNetworkPolicyPortForDebug(t *testing.T) {
 	portSQL := intstr.FromString("tcpPosgresql")
 	tcp := v1.ProtocolTCP
 	expectedNetPolPorts := []netv1.NetworkPolicyPort{
-
 		{
 			Port:     &port,
 			Protocol: &tcp,

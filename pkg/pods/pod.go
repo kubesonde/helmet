@@ -88,7 +88,6 @@ func init() {
 }
 
 func createPolicy(podSelector v1.LabelSelector, policyName string, egress []netv1.NetworkPolicyEgressRule, ingress []netv1.NetworkPolicyIngressRule) netv1.NetworkPolicy {
-
 	default_rules := []netv1.NetworkPolicyEgressRule{
 		{
 			To: []netv1.NetworkPolicyPeer{toAllNonPrivateAddresses},
@@ -120,7 +119,6 @@ func createPolicy(podSelector v1.LabelSelector, policyName string, egress []netv
 }
 
 func BuildNetworkPolicyForPods(labelSelector v1.LabelSelector, policyName string, egress []netv1.NetworkPolicyEgressRule, ingress []netv1.NetworkPolicyIngressRule) string {
-
 	validPolicyName := strings.ReplaceAll(policyName, "_", "--")
 	policy := createPolicy(labelSelector, validPolicyName, egress, ingress)
 
@@ -134,7 +132,6 @@ func BuildNetworkPolicyForPods(labelSelector v1.LabelSelector, policyName string
 
 func copyManifest(input helm.HelmManifest) helm.HelmManifest {
 	return reflect.ValueOf(input).Interface().(helm.HelmManifest)
-
 }
 
 func SetLabelValue(manifest helm.HelmManifest, labelChain []string, labelKey string, labelValue string) helm.HelmManifest {
@@ -152,14 +149,11 @@ func SetLabelValue(manifest helm.HelmManifest, labelChain []string, labelKey str
 		} else {
 			pointerToLabels[item] = helm.HelmManifest{}
 			pointerToLabels = pointerToLabels[item].(helm.HelmManifest)
-
 		}
-
 	})
 	pointerToLabels[labelKey] = labelValue
 
 	return output_manifest
-
 }
 
 func GetComputeUnits(manifestList helm.HelmManifestList) helm.HelmManifestList {
@@ -177,7 +171,6 @@ func GetComputeUnits(manifestList helm.HelmManifestList) helm.HelmManifestList {
 }
 
 func AddWrapperLabelToPods(manifestList helm.HelmManifestList, labelKey string) {
-
 	result := lo.Filter(lo.Map(lo.Values(manifestList), func(value helm.HelmManifest, index int) string {
 		if value["kind"] == nil {
 			return ""
@@ -196,11 +189,9 @@ func AddWrapperLabelToPods(manifestList helm.HelmManifestList, labelKey string) 
 			}
 		}
 	}
-
 }
 
 func GetNamespace(manifestList helm.HelmManifestList) string {
-
 	result := lo.Values(manifestList)
 	manifests_with_ns := lo.Filter(result, func(item helm.HelmManifest, idx int) bool {
 		meta := item["metadata"].(helm.HelmManifest)
