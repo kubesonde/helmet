@@ -23,8 +23,6 @@ import (
 
 	"github.com/samber/lo"
 	logf "github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
-
 	"helm.sh/helm/v3/pkg/cli"
 	"helmet.io/pkg/boundaries"
 	"helmet.io/pkg/core"
@@ -32,6 +30,7 @@ import (
 	"helmet.io/pkg/graph"
 	"helmet.io/pkg/helm"
 	"helmet.io/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	yaml "sigs.k8s.io/yaml"
 )
@@ -72,11 +71,9 @@ func SecureWholeChart(settings *cli.EnvSettings, chartName string, releaseName s
 		runWithCustomConfig(hw, apiClient, config_available, output_dir)
 		fmt.Printf("Chart %s processed successfully using %s configuration.\n Output folder: yaml", chartName, config_available)
 	}
-
 }
 
 func runWithCustomConfig(hw types.Helmet, apiClient kubernetes.Interface, config_available string, output_dir string) {
-
 	log.Info(fmt.Sprintf("Reading configuration file %s", config_available))
 	content := lo.Must(boundaries.ReadHelmETConfigsFromYAML(config_available))
 	ancestors, _ := graph.GetAcenstorsDescendants(hw.Manifests)
@@ -115,7 +112,6 @@ func runWithDefaultConfig(hw types.Helmet, output_dir string) {
 		manifestYaml := make(helm.HelmManifest)
 		lo.Must0(yaml.Unmarshal([]byte(netpol_str), manifestYaml))
 		manifests[fmt.Sprintf("%s.yaml", netpol.Name)] = manifestYaml
-
 	}
 	_, descendants := graph.GetAcenstorsDescendants(hw.Manifests)
 	configs := boundaries.NetworkPoliciesToTemplate(netpols, descendants)
