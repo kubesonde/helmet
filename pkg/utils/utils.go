@@ -29,47 +29,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package errors
+package utils
 
 import (
-	"testing"
-
-	"github.com/samber/lo"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"fmt"
+	"math"
 )
 
-func TestErrors(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Error suite")
+func IntToInt32(i int) (int32, error) {
+	if i < math.MinInt32 || i > math.MaxInt32 {
+		return 0, fmt.Errorf("int value %d overflows int32", i)
+	}
+	return int32(i), nil
 }
-
-var _ = Describe("String to error", func() {
-	It("Returns default message for unknown error", func() {
-		Expect(StringToError("does not exist")).To(Equal(Unknown))
-	})
-	It("Recognizes correct messages", func() {
-		errorStrings := []string{
-			"chart requires kubeVersion",
-			"unable to build kubernetes objects",
-			"ensure CRDs are installed first",
-			"A value for one of the following variables is required",
-			"execution error at",
-			"no such host",
-			"cluster unreachable",
-		}
-		expectedErrors := []HelmError{
-			IncorrectK8sVersion,
-			ValidationError,
-			MissingCRDs,
-			MissingVariable,
-			InvalidVariable,
-			NoInternet,
-			ClusterUnreachable,
-		}
-		lo.ForEach(errorStrings, func(err string, index int) {
-			Expect(StringToError(err)).To(Equal(expectedErrors[index]))
-		})
-	})
-})

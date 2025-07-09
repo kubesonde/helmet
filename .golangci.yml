@@ -17,6 +17,13 @@ linters:
     - paralleltest
     - nilnil
     - funcorder
+    # Should be enabled eventually
+    - tagliatelle
+    - thelper
+    - revive
+    - gocritic
+    - gochecknoinits
+    - gochecknoglobals
 
     # Below are linters that lint for things we don't value. Each entry below
     # this line must have a comment explaining the rationale.

@@ -14,6 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package graph
 
 import (
@@ -31,6 +46,7 @@ import (
 	"helmet.io/pkg/logging"
 	"helmet.io/pkg/outbound"
 	"helmet.io/pkg/types"
+	"helmet.io/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -124,7 +140,7 @@ func ComputeEdgesWithEnvironmentVariables(manifestList helm.HelmManifestList, no
 										edges = append(edges, types.HelmET_Edge{
 											Source:      src_node,
 											Destination: dst_node,
-											Port:        int32(port),
+											Port:        lo.Must1(utils.IntToInt32(port)),
 										})
 									}
 								}
@@ -422,7 +438,7 @@ func fixProto(protocol v1.Protocol) v1.Protocol {
 func getContainerPortMappingServicePort(destnode types.HelmET_Node, destservice types.HelmET_Service, port int) netv1.NetworkPolicyPort {
 	if destservice.Headless {
 		targetContainerPort, _ := lo.Find(destnode.ComputeUnit.ContainerPorts, func(cport v1.ContainerPort) bool {
-			return cport.ContainerPort == int32(port)
+			return cport.ContainerPort == lo.Must1(utils.IntToInt32(port))
 		})
 		theport := intstr.FromInt(port)
 		return netv1.NetworkPolicyPort{
@@ -432,7 +448,7 @@ func getContainerPortMappingServicePort(destnode types.HelmET_Node, destservice 
 	} else if len(destservice.ServicePorts) == 0 {
 		log.Warnf("No service detected in compute unit %s - port %d", destnode.ComputeUnit.Name, port)
 		targetContainerPort, found := lo.Find(destnode.ComputeUnit.ContainerPorts, func(cport v1.ContainerPort) bool {
-			return cport.ContainerPort == int32(port)
+			return cport.ContainerPort == lo.Must1(utils.IntToInt32(port))
 		})
 		if !found {
 			log.WithField("error", errors.ServiceIssue).Errorf("There are no services and the container do not expose the port %d", port)
@@ -458,7 +474,7 @@ func getContainerPortMappingServicePort(destnode types.HelmET_Node, destservice 
 		return netpolPort
 	}
 	targetServicePort, found := lo.Find(destservice.ServicePorts, func(svcport v1.ServicePort) bool {
-		return svcport.Port == int32(port)
+		return svcport.Port == lo.Must1(utils.IntToInt32(port))
 	})
 	if !found {
 		fmt.Println("ERRORRRR", port, destservice)

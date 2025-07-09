@@ -1,3 +1,18 @@
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package boundaries
 
 import (
@@ -146,7 +161,7 @@ spec:
 `
 
 func TestNetpolToTemplate(t *testing.T) {
-	network_configurations := strings.Split(string(netpols), "\n---\n")
+	network_configurations := strings.Split(netpols, "\n---\n")
 	netpols_obj := []netv1.NetworkPolicy{}
 	for _, configuration := range network_configurations {
 		var netpol_obj netv1.NetworkPolicy
@@ -305,7 +320,7 @@ spec:
 `
 
 func SkipTestTemplateToNetpol(t *testing.T) {
-	network_configurations := strings.Split(string(netpols), "\n---\n")
+	network_configurations := strings.Split(netpols, "\n---\n")
 	netpols_obj := []netv1.NetworkPolicy{}
 	for _, configuration := range network_configurations {
 		var netpol_obj netv1.NetworkPolicy
@@ -330,7 +345,7 @@ func SkipTestTemplateToNetpol(t *testing.T) {
 }
 
 func SkipTestTemplateToNetpolReversed(t *testing.T) {
-	network_configurations := strings.Split(string(netpols_reversed), "\n---\n")
+	network_configurations := strings.Split(netpols_reversed, "\n---\n")
 	netpols_obj := []netv1.NetworkPolicy{}
 	for _, configuration := range network_configurations {
 		var netpol_obj netv1.NetworkPolicy
@@ -418,7 +433,7 @@ Name: wordpress-policy
 ---`
 
 func TestGeneratedConfig(t *testing.T) {
-	network_configurations := strings.Split(string(netpols), "\n---\n")
+	network_configurations := strings.Split(netpols, "\n---\n")
 	netpols_obj := []netv1.NetworkPolicy{}
 	for _, configuration := range network_configurations {
 		var netpol_obj netv1.NetworkPolicy
@@ -430,7 +445,7 @@ func TestGeneratedConfig(t *testing.T) {
 	depTree := map[string][]string{"wordpress": {"wordpress_mariadb"}}
 	template := NetworkPoliciesToTemplate(netpols_obj, depTree)
 	var cfg []HelmETConfig
-	single_config := strings.Split(string(generatedConfig), "\n---\n")
+	single_config := strings.Split(generatedConfig, "\n---\n")
 	for _, configuration := range single_config {
 		var helmetConfig HelmETConfig
 
@@ -514,7 +529,7 @@ Name: wordpress-policy
 func TestGeneratedCustomConfig(t *testing.T) {
 	template := []HelmETConfig{}
 	ancestors := map[string][]string{"wordpress_mariadb": {"wordpress"}}
-	network_configurations := strings.Split(string(customConfig), "\n---\n")
+	network_configurations := strings.Split(customConfig, "\n---\n")
 	for _, configuration := range network_configurations {
 		var custom_config HelmETConfig
 		lo.Must0(yaml.Unmarshal([]byte(configuration), &custom_config))

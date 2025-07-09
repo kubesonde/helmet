@@ -14,16 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Copyright 2025 Helm-ET authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package graph
 
 import (
 	"sort"
 	"testing"
 
+	"github.com/samber/lo"
 	"gotest.tools/v3/assert"
 	"helmet.io/pkg/helm"
 	"helmet.io/pkg/testutils"
 	"helmet.io/pkg/types"
+	"helmet.io/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -73,14 +90,17 @@ func TestComputeEdgesToItself(t *testing.T) {
 
 	edges := ComputeEdgesToItself(manifestList, nodes)
 	sort.Sort(types.EdgesByName(edges))
+	p3306 := lo.Must1(utils.IntToInt32(3306))
+	p443 := lo.Must1(utils.IntToInt32(443))
+	p80 := lo.Must1(utils.IntToInt32(80))
 	assert.Equal(t, len(edges), 3)
-	assert.Equal(t, edges[0].Port, int32(3306))
+	assert.Equal(t, edges[0].Port, p3306)
 	assert.Equal(t, edges[0].Source.Name, "mychart-mariadb")
 	assert.Equal(t, edges[0].Destination.Name, "mychart-mariadb")
-	assert.Equal(t, edges[1].Port, int32(80))
+	assert.Equal(t, edges[1].Port, p80)
 	assert.Equal(t, edges[1].Source.Name, "mychart-wordpress")
 	assert.Equal(t, edges[1].Destination.Name, "mychart-wordpress")
-	assert.Equal(t, edges[2].Port, int32(443))
+	assert.Equal(t, edges[2].Port, p443)
 	assert.Equal(t, edges[2].Source.Name, "mychart-wordpress")
 	assert.Equal(t, edges[2].Destination.Name, "mychart-wordpress")
 }
@@ -91,7 +111,9 @@ func TestComputeEdgesWithDependencyInformation(t *testing.T) {
 	edges := ComputeEdgesWithDependencyInformation(manifestList, nodes)
 	sort.Sort(types.EdgesByName(edges))
 	assert.Equal(t, len(edges), 1)
-	assert.Equal(t, edges[0].Port, int32(3306))
+	p3306 := lo.Must1(utils.IntToInt32(3306))
+
+	assert.Equal(t, edges[0].Port, p3306)
 	assert.Equal(t, edges[0].Source.Name, "mychart-wordpress")
 	assert.Equal(t, edges[0].Destination.Name, "mychart-mariadb")
 }
@@ -100,9 +122,9 @@ func TestComputeEdgesWithEnvironmentVariables(t *testing.T) {
 	manifestList := helm.GetManifestListFromString(testutils.WORDPRESS)
 	nodes := GetHelmetNodesWithDependencies(manifestList)
 	edges := ComputeEdgesWithEnvironmentVariables(manifestList, nodes)
-
+	p3306 := lo.Must1(utils.IntToInt32(3306))
 	assert.Equal(t, len(edges), 1)
-	assert.Equal(t, edges[0].Port, int32(3306))
+	assert.Equal(t, edges[0].Port, p3306)
 	assert.Equal(t, edges[0].Source.Name, "mychart-wordpress")
 	assert.Equal(t, edges[0].Destination.Name, "mychart-mariadb")
 }
